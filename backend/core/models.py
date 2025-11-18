@@ -122,3 +122,13 @@ class KakaoSettings(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class InstagramSettings(Base):
+    __tablename__ = "instagram_settings"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
+    access_token: Mapped[str] = mapped_column(Text, nullable=False)
+    featured_image_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+

@@ -35,7 +35,10 @@ def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)) -> schem
     token = service.create_user_token(user)
     
     # 관리자 여부 확인
-    is_admin = (payload.email == settings.admin_email and payload.password == settings.admin_password)
+    try:
+        is_admin = (payload.email == settings.admin_email and payload.password == settings.admin_password)
+    except Exception:
+        is_admin = False
     
     return schemas.AuthResponse(
         user=schemas.AuthUser(
