@@ -28,10 +28,22 @@ def signup(payload: schemas.SignupRequest, db: Session = Depends(get_db)) -> sch
 
 @router.post("/login", response_model=schemas.AuthResponse)
 def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)) -> schemas.AuthResponse:
+    from backend.core.config import get_settings
+    settings = get_settings()
+    
     user = service.authenticate_user(db, email=payload.email, password=payload.password)
     token = service.create_user_token(user)
+    
+    # 관리자 여부 확인
+    is_admin = (payload.email == settings.admin_email and payload.password == settings.admin_password)
+    
     return schemas.AuthResponse(
-        user=schemas.AuthUser(id=str(user.id), email=user.email, name=user.name),
+        user=schemas.AuthUser(
+            id=str(user.id),
+            email=user.email,
+            name=user.name,
+            is_admin=is_admin,
+        ),
         token=token,
     )
 

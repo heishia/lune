@@ -113,3 +113,12 @@ class OrderItem(Base):
     product: Mapped[Product] = relationship(back_populates="order_items")
 
 
+class KakaoSettings(Base):
+    __tablename__ = "kakao_settings"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
+    access_token: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+

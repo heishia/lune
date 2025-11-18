@@ -9,7 +9,14 @@ from passlib.context import CryptContext
 from .config import get_settings
 from .exceptions import UnauthorizedError
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# passlib의 순수 Python bcrypt 구현 강제 사용 (bcrypt 라이브러리 호환성 문제 회피)
+# bcrypt__backend="pybcrypt"를 사용하여 순수 Python 구현 강제
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    bcrypt__ident="2b",
+    bcrypt__backend="pybcrypt",  # 순수 Python 구현 강제
+    deprecated="auto"
+)
 settings = get_settings()
 security_scheme = HTTPBearer(auto_error=True)
 

@@ -20,6 +20,7 @@ class AuthUser(BaseModel):
     id: str
     email: EmailStr
     name: str
+    is_admin: bool = False
 
 
 class AuthResponse(BaseModel):

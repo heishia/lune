@@ -31,6 +31,31 @@ class Settings(BaseSettings):
         description="엑세스 토큰 만료 시간(분 단위, 기본 7일)",
     )
 
+    kakao_rest_api_key: str = Field(
+        "",
+        description="카카오톡 REST API 키 (앱 키)",
+    )
+
+    kakao_client_secret: str = Field(
+        "",
+        description="카카오톡 Client Secret (클라이언트 시크릿)",
+    )
+
+    admin_email: str = Field(
+        "admin",
+        description="관리자 이메일",
+    )
+
+    admin_password: str = Field(
+        "",
+        description="관리자 비밀번호",
+    )
+
+    kakao_redirect_uri: str = Field(
+        "",
+        description="카카오톡 OAuth 리다이렉트 URI",
+    )
+
 
 @lru_cache()
 def get_settings() -> Settings:

@@ -8,6 +8,7 @@ from backend.core.logger import configure_logging, get_logger
 from backend.products.router import router as products_router
 from backend.cart.router import router as cart_router
 from backend.orders.router import router as orders_router
+from backend.kakao.router import router as kakao_router
 
 settings = get_settings()
 configure_logging()
@@ -33,5 +34,6 @@ app.include_router(auth_router)
 app.include_router(products_router)
 app.include_router(cart_router)
 app.include_router(orders_router)
+app.include_router(kakao_router)
 
 

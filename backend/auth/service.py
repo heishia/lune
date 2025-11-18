@@ -3,6 +3,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from backend.core import models
+from backend.core.config import get_settings
 from backend.core.exceptions import ConflictError, NotFoundError, UnauthorizedError
 from backend.core.security import create_access_token, hash_password, verify_password
 
@@ -37,6 +38,24 @@ def create_user(
 
 
 def authenticate_user(db: Session, email: str, password: str) -> models.User:
+    settings = get_settings()
+    
+    # 관리자 계정 체크
+    if email == settings.admin_email and password == settings.admin_password:
+        # 관리자용 가상 사용자 객체 반환 (실제 DB에 저장되지 않음)
+        # 또는 관리자 전용 토큰 생성
+        from uuid import uuid4
+        admin_user = models.User(
+            id=str(uuid4()),
+            email=settings.admin_email,
+            name="관리자",
+            password_hash="",  # 관리자는 비밀번호 해시 불필요
+            phone="000-0000-0000",
+            marketing_agreed=False,
+            is_active=True,
+        )
+        return admin_user
+    
     user = get_user_by_email(db, email=email)
     if not user:
         raise UnauthorizedError("이메일 또는 비밀번호가 올바르지 않습니다.")
