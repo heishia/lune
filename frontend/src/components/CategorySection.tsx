@@ -10,14 +10,14 @@ export function CategorySection() {
   ];
 
   return (
-    <section className="bg-brand-cream py-8 pt-4 pb-32">
-      <div className="max-w-5xl mx-auto px-6">
+    <section className="bg-brand-cream py-8 mobile-py-6 pt-4 mobile-pt-3 pb-32 mobile-pb-20">
+      <div className="max-w-5xl mx-auto px-6 mobile-px-3">
         {/* Brand Images - 3 images in a row */}
-        <div className="mb-32">
-          <div className="grid grid-cols-3 max-[500px]:flex max-[500px]:flex-col gap-6 max-[500px]:gap-4 max-w-4xl mx-auto">
+        <div className="mb-32 mobile-mb-16">
+          <div className="grid grid-cols-3 mobile-flex mobile-flex-col gap-6 mobile-gap-4 max-w-4xl mx-auto">
             {brandImages.map((item, index) => (
               <div key={index} className="group">
-                <div className="relative overflow-hidden aspect-[4/5] max-[500px]:aspect-[3/4] rounded-sm bg-white">
+                <div className="relative overflow-hidden aspect-[4/5] mobile-aspect-3-4 rounded-sm bg-white">
                   <img
                     src={item.image}
                     alt={item.alt}
@@ -30,9 +30,9 @@ export function CategorySection() {
         </div>
 
         {/* Section Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-3 mb-2">
-            <span className="text-[24px] tracking-[0.3em] text-brand-terra-cotta font-bold">
+        <div className="text-center mb-12 mobile-mb-8">
+          <div className="inline-flex items-center gap-3 mobile-gap-2 mb-2">
+            <span className="text-[24px] mobile-text-18px tracking-[0.3em] text-brand-terra-cotta font-bold">
               BRAND VALUES
             </span>
           </div>
@@ -40,7 +40,7 @@ export function CategorySection() {
 
         {/* Triangle Design with Values */}
         <div className="mb-0 flex justify-center">
-          <div className="grid grid-cols-3 max-[500px]:flex max-[500px]:flex-col gap-16 max-[500px]:gap-8 max-w-6xl mx-auto px-8 max-[500px]:px-4">
+          <div className="grid grid-cols-3 mobile-flex mobile-flex-col gap-16 mobile-gap-6 max-w-6xl mx-auto px-8 mobile-px-4">
             {/* Quality Triangle */}
             <div className="flex flex-col items-center gap-4">
               <svg viewBox="0 0 120 104" className="w-full h-auto max-w-[240px]">

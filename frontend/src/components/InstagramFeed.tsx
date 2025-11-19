@@ -50,63 +50,63 @@ export function InstagramFeed() {
 
   const useFallbackImages = () => {
     // Instagram 연동 전 기본 이미지
-    const feedImages = [
+    const feedImages: InstagramMedia[] = [
       {
-        id: 1,
-        image: "https://images.unsplash.com/photo-1629922949137-e236a5ab497d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwd29tZW4lMjBmYXNoaW9ufGVufDF8fHx8MTc2MTM1MDcyMHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-        text: "EVERYDAY ESSENTIALS",
-        size: "large",
+        id: "1",
+        imageUrl: "https://images.unsplash.com/photo-1629922949137-e236a5ab497d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwd29tZW4lMjBmYXNoaW9ufGVufDF8fHx8MTc2MTM1MDcyMHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+        caption: "EVERYDAY ESSENTIALS",
+        permalink: "#",
       },
       {
-        id: 2,
-        image: "https://images.unsplash.com/photo-1759229874914-c1ffdb3ebd0c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2Z0JTIwYmVpZ2UlMjBjbG90aGluZ3xlbnwxfHx8fDE3NjEzNTA3MjB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-        text: "TIMELESS ELEGANCE",
-        size: "small",
+        id: "2",
+        imageUrl: "https://images.unsplash.com/photo-1759229874914-c1ffdb3ebd0c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2Z0JTIwYmVpZ2UlMjBjbG90aGluZ3xlbnwxfHx8fDE3NjEzNTA3MjB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+        caption: "TIMELESS ELEGANCE",
+        permalink: "#",
       },
       {
-        id: 3,
-        image: "https://images.unsplash.com/photo-1631541911232-72bc7448820a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWlnZSUyMGtuaXQlMjBzd2VhdGVyfGVufDF8fHx8MTc2MTM1MDcxN3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-        text: "MODERN ROMANCE",
-        size: "small",
+        id: "3",
+        imageUrl: "https://images.unsplash.com/photo-1631541911232-72bc7448820a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWlnZSUyMGtuaXQlMjBzd2VhdGVyfGVufDF8fHx8MTc2MTM1MDcxN3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+        caption: "MODERN ROMANCE",
+        permalink: "#",
       },
       {
-        id: 4,
-        image: "https://images.unsplash.com/photo-1632469188022-b5db09a70fbc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWlnZSUyMGZhc2hpb24lMjBmbGF0JTIwbGF5fGVufDF8fHx8MTc2MTM1MDcxOXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-        text: "CURATED COLLECTION",
-        size: "small",
+        id: "4",
+        imageUrl: "https://images.unsplash.com/photo-1632469188022-b5db09a70fbc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWlnZSUyMGZhc2hpb24lMjBmbGF0JTIwbGF5fGVufDF8fHx8MTc2MTM1MDcxOXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+        caption: "CURATED COLLECTION",
+        permalink: "#",
       },
       {
-        id: 5,
-        image: "https://images.unsplash.com/photo-1562986398-ef6efbbc9537?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxuZXV0cmFsJTIwY2FyZGlnYW4lMjBmYXNoaW9ufGVufDF8fHx8MTc2MTM1MDcxOHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-        text: "WINTER WARMTH",
-        size: "small",
+        id: "5",
+        imageUrl: "https://images.unsplash.com/photo-1562986398-ef6efbbc9537?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxuZXV0cmFsJTIwY2FyZGlnYW4lMjBmYXNoaW9ufGVufDF8fHx8MTc2MTM1MDcxOHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+        caption: "WINTER WARMTH",
+        permalink: "#",
       },
       {
-        id: 6,
-        image: "https://images.unsplash.com/photo-1676808373053-de1f0f9b2119?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxuZXV0cmFsJTIwd29tZW4lMjBzaG9lc3xlbnwxfHx8fDE3NjEzNTA3MTl8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-        text: "CHIC MINIMALISM",
-        size: "small",
+        id: "6",
+        imageUrl: "https://images.unsplash.com/photo-1676808373053-de1f0f9b2119?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxuZXV0cmFsJTIwd29tZW4lMjBzaG9lc3xlbnwxfHx8fDE3NjEzNTA3MTl8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+        caption: "CHIC MINIMALISM",
+        permalink: "#",
       },
     ];
 
-    setFeaturedImage(feedImages[0].image);
-    setMediaItems(feedImages.slice(1) as InstagramMedia[]);
+    setFeaturedImage(feedImages[0].imageUrl);
+    setMediaItems(feedImages.slice(1));
   };
 
   return (
-    <div className="bg-brand-cream py-8 max-[500px]:py-6">
-      <div className="max-w-6xl mx-auto px-4 max-[500px]:px-3">
+    <div className="bg-brand-cream py-8 mobile-py-6">
+      <div className="max-w-6xl mx-auto px-4 mobile-px-3">
         {/* Grid Layout */}
-        <div className="grid grid-cols-2 md:grid-cols-4 max-[500px]:grid-cols-1 gap-3 max-[500px]:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 mobile-grid-cols-1 gap-3 mobile-gap-4">
           {/* First large image */}
-          <div className="md:row-span-2 max-[500px]:row-span-1 relative group cursor-pointer overflow-hidden rounded-lg aspect-square max-[500px]:aspect-[4/3]">
+          <div className="md:row-span-2 mobile-row-span-1 relative group cursor-pointer overflow-hidden rounded-lg aspect-square mobile-aspect-[4/3]">
             <ImageWithFallback
               src={featuredImage || ""}
               alt="Featured Image"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
             <div className="absolute inset-0 bg-brand-terra-cotta/20 group-hover:bg-brand-terra-cotta/30 transition-colors" />
-            <div className="absolute bottom-4 left-4 right-4 max-[500px]:bottom-3 max-[500px]:left-3 max-[500px]:right-3 text-brand-cream">
+            <div className="absolute bottom-4 left-4 right-4 mobile-bottom-3 mobile-left-3 mobile-right-3 text-brand-cream">
               <p className="text-[10px] tracking-wider">FEATURED IMAGE</p>
             </div>
           </div>
@@ -115,7 +115,7 @@ export function InstagramFeed() {
           {mediaItems.map((item) => (
             <div
               key={item.id}
-              className="relative group cursor-pointer overflow-hidden rounded-lg aspect-square max-[500px]:aspect-[4/3]"
+              className="relative group cursor-pointer overflow-hidden rounded-lg aspect-square mobile-aspect-[4/3]"
             >
               <ImageWithFallback
                 src={item.imageUrl}
@@ -124,14 +124,14 @@ export function InstagramFeed() {
               />
               <div className="absolute inset-0 bg-brand-terra-cotta/20 group-hover:bg-brand-terra-cotta/30 transition-colors" />
               <div className="absolute bottom-3 left-3 right-3 text-brand-cream">
-                <p className="text-[9px] max-[500px]:text-[10px] tracking-wider">{item.caption}</p>
+                <p className="text-[9px] mobile-text-10px tracking-wider">{item.caption}</p>
               </div>
             </div>
           ))}
         </div>
 
         {/* Instagram Link */}
-        <div className="text-center mt-8 max-[500px]:mt-6">
+        <div className="text-center mt-8 mobile-mt-6">
           <p className="text-xs tracking-widest text-brand-warm-taupe">@ LUNE_OFFICIAL</p>
         </div>
       </div>

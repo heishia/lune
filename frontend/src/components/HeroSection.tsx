@@ -44,23 +44,22 @@ export function HeroSection() {
   };
 
   return (
-    <div className="mt-48 bg-[rgb(82,37,37)] px-4 py-8 relative">
+    <div className="mt-48 mobile-mt-24 bg-[rgb(82,37,37)] px-4 mobile-px-3 py-8 mobile-py-6 relative">
       {/* Carousel Container */}
       <div className="relative overflow-hidden">
         <div
-          className="flex gap-4 transition-transform duration-700 ease-out"
+          className="flex gap-4 mobile-flex-col mobile-gap-6 transition-transform duration-700 ease-out"
           style={{ transform: `translateX(-${currentIndex * (100 / 3)}%)` }}
         >
           {heroImages.map((image, index) => (
             <div
               key={index}
-              className="flex-shrink-0 w-[calc(33.33%-10.67px)]"
+              className="flex-shrink-0 w-[calc(33.33%-10.67px)] mobile-w-full"
             >
               <ImageWithFallback
                 src={image.src}
                 alt={image.alt}
-                className="w-full aspect-[3/4] object-cover rounded-[0px]"
-                style={{ imageRendering: 'high-quality' }}
+                className="w-full aspect-[3/4] mobile-aspect-4-5 object-cover rounded-[0px]"
               />
             </div>
           ))}

@@ -60,10 +60,10 @@ export function CartModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] bg-brand-cream border-brand-warm-taupe/30 flex flex-col">
+      <DialogContent className="max-w-2xl mobile-max-w-95vw max-h-[85vh] bg-brand-cream border-brand-warm-taupe/30 flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-brand-terra-cotta tracking-wider flex items-center gap-2">
-            <ShoppingBag className="w-5 h-5" />
+          <DialogTitle className="text-brand-terra-cotta tracking-wider flex items-center gap-2 mobile-text-sm">
+            <ShoppingBag className="w-5 h-5 mobile-w-4 mobile-h-4" />
             SHOPPING CART ({cartItems.length})
           </DialogTitle>
           <DialogDescription className="sr-only">
@@ -91,9 +91,9 @@ export function CartModal({
                 return (
                   <div
                     key={`${item.productId}-${item.color}-${item.size}`}
-                    className="flex gap-4 bg-white p-4 rounded-lg border border-brand-warm-taupe/20"
+                    className="flex gap-4 mobile-flex-col mobile-gap-3 bg-white p-4 mobile-p-3 rounded-lg border border-brand-warm-taupe/20"
                   >
-                    <div className="w-24 h-24 bg-brand-warm-taupe/10 rounded overflow-hidden flex-shrink-0">
+                    <div className="w-24 h-24 mobile-w-full mobile-h-48 bg-brand-warm-taupe/10 rounded overflow-hidden flex-shrink-0">
                       <ImageWithFallback
                         src={product.image_url}
                         alt={product.name}
@@ -102,46 +102,46 @@ export function CartModal({
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h3 className="text-sm text-brand-terra-cotta mb-1">
+                      <div className="flex justify-between items-start mb-2 mobile-mb-3">
+                        <div className="flex-1">
+                          <h3 className="text-sm mobile-text-xs text-brand-terra-cotta mb-1">
                             {product.name}
                           </h3>
-                          <div className="text-xs text-brand-warm-taupe space-x-2">
+                          <div className="text-xs mobile-text-10px text-brand-warm-taupe space-x-2 mobile-space-x-1">
                             <span>Color: {item.color}</span>
                             <span>Size: {item.size}</span>
                           </div>
                         </div>
                         <button
                           onClick={() => onRemoveItem(item.productId)}
-                          className="text-brand-warm-taupe hover:text-brand-terra-cotta transition-colors"
+                          className="text-brand-warm-taupe hover:text-brand-terra-cotta transition-colors mobile-ml-2"
                         >
-                          <X className="w-4 h-4" />
+                          <X className="w-4 h-4 mobile-w-5 mobile-h-5" />
                         </button>
                       </div>
 
-                      <div className="flex justify-between items-center mt-3">
+                      <div className="flex justify-between items-center mt-3 mobile-flex-col mobile-items-start mobile-gap-3">
                         <div className="flex items-center gap-2 bg-brand-cream rounded">
                           <button
                             onClick={() => onUpdateQuantity(item.productId, item.quantity - 1)}
-                            className="w-7 h-7 flex items-center justify-center border border-brand-warm-taupe/30 text-brand-warm-taupe hover:border-brand-terra-cotta hover:text-brand-terra-cotta transition-colors"
+                            className="w-7 h-7 mobile-w-9 mobile-h-9 flex items-center justify-center border border-brand-warm-taupe/30 text-brand-warm-taupe hover:border-brand-terra-cotta hover:text-brand-terra-cotta transition-colors"
                             disabled={item.quantity <= 1}
                           >
-                            <Minus className="w-3 h-3" />
+                            <Minus className="w-3 h-3 mobile-w-4 mobile-h-4" />
                           </button>
-                          <span className="w-8 text-center text-sm text-brand-terra-cotta">
+                          <span className="w-8 mobile-w-10 text-center text-sm mobile-text-base text-brand-terra-cotta">
                             {item.quantity}
                           </span>
                           <button
                             onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)}
-                            className="w-7 h-7 flex items-center justify-center border border-brand-warm-taupe/30 text-brand-warm-taupe hover:border-brand-terra-cotta hover:text-brand-terra-cotta transition-colors"
+                            className="w-7 h-7 mobile-w-9 mobile-h-9 flex items-center justify-center border border-brand-warm-taupe/30 text-brand-warm-taupe hover:border-brand-terra-cotta hover:text-brand-terra-cotta transition-colors"
                           >
-                            <Plus className="w-3 h-3" />
+                            <Plus className="w-3 h-3 mobile-w-4 mobile-h-4" />
                           </button>
                         </div>
 
-                        <div className="text-right">
-                          <div className="text-brand-terra-cotta">
+                        <div className="text-right mobile-text-left mobile-w-full">
+                          <div className="text-brand-terra-cotta text-sm mobile-text-base mobile-font-medium">
                             {(product.price * item.quantity).toLocaleString()}원
                           </div>
                         </div>
@@ -153,24 +153,24 @@ export function CartModal({
               )}
             </div>
 
-            <div className="border-t border-brand-warm-taupe/20 pt-4 space-y-4">
+            <div className="border-t border-brand-warm-taupe/20 pt-4 mobile-pt-3 space-y-4 mobile-space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-brand-warm-taupe tracking-wider">TOTAL</span>
-                <span className="text-xl text-brand-terra-cotta">
+                <span className="text-brand-warm-taupe tracking-wider mobile-text-sm">TOTAL</span>
+                <span className="text-xl mobile-text-lg text-brand-terra-cotta">
                   {total.toLocaleString()}원
                 </span>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 mobile-flex-col">
                 <Button
                   onClick={onClose}
                   variant="outline"
-                  className="flex-1 border-brand-warm-taupe/30 text-brand-terra-cotta hover:bg-brand-warm-taupe/10"
+                  className="flex-1 border-brand-warm-taupe/30 text-brand-terra-cotta hover:bg-brand-warm-taupe/10 mobile-py-3 mobile-h-14"
                 >
                   계속 쇼핑하기
                 </Button>
                 <Button
-                  className="flex-1 bg-brand-terra-cotta text-brand-cream hover:bg-brand-warm-taupe"
+                  className="flex-1 bg-brand-terra-cotta text-brand-cream hover:bg-brand-warm-taupe mobile-py-3 mobile-h-14"
                   onClick={onCheckout}
                 >
                   주문하기

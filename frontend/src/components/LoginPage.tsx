@@ -60,17 +60,17 @@ export function LoginPage({ onLogin, onBack, onSignupClick, onAdminLogin }: Logi
       </header>
 
       {/* Main Content */}
-      <div className="pt-32 pb-20 px-4">
+      <div className="pt-32 mobile-pt-24 pb-20 mobile-pb-12 px-4 mobile-px-3">
         <div className="max-w-md mx-auto">
           {/* Title */}
-          <div className="text-center mb-12">
-            <h1 className="text-2xl text-black tracking-wider">로그인</h1>
+          <div className="text-center mb-12 mobile-mb-8">
+            <h1 className="text-2xl mobile-text-xl text-black tracking-wider">로그인</h1>
           </div>
 
           {/* Login Form */}
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-6 mobile-space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-black text-sm">
+              <Label htmlFor="email" className="text-black text-sm mobile-text-xs">
                 이메일
               </Label>
               <Input
@@ -79,12 +79,12 @@ export function LoginPage({ onLogin, onBack, onSignupClick, onAdminLogin }: Logi
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="이메일을 입력하세요"
-                className="bg-white border-black/20 text-black placeholder:text-black/40 h-12 focus:border-black"
+                className="bg-white border-black/20 text-black placeholder:text-black/40 h-12 mobile-h-14 focus:border-black"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-black text-sm">
+              <Label htmlFor="password" className="text-black text-sm mobile-text-xs">
                 비밀번호
               </Label>
               <Input
@@ -93,7 +93,7 @@ export function LoginPage({ onLogin, onBack, onSignupClick, onAdminLogin }: Logi
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="비밀번호를 입력하세요"
-                className="bg-white border-black/20 text-black placeholder:text-black/40 h-12 focus:border-black"
+                className="bg-white border-black/20 text-black placeholder:text-black/40 h-12 mobile-h-14 focus:border-black"
               />
             </div>
 
@@ -118,40 +118,40 @@ export function LoginPage({ onLogin, onBack, onSignupClick, onAdminLogin }: Logi
             {/* Login Button */}
             <Button
               type="submit"
-              className="w-full bg-brand-terra-cotta text-white hover:bg-brand-warm-taupe h-12 tracking-wider"
+              className="w-full bg-brand-terra-cotta text-white hover:bg-brand-warm-taupe h-12 mobile-h-14 tracking-wider text-sm mobile-text-base"
             >
               로그인
             </Button>
           </form>
 
           {/* Divider */}
-          <div className="relative my-8">
+          <div className="relative my-8 mobile-my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-black/10"></div>
             </div>
-            <div className="relative flex justify-center text-sm">
+            <div className="relative flex justify-center text-sm mobile-text-xs">
               <span className="px-4 bg-white text-black/60">또는</span>
             </div>
           </div>
 
           {/* Sign Up */}
-          <div className="space-y-4">
+          <div className="space-y-4 mobile-space-y-3">
             <Button
               type="button"
               onClick={onSignupClick || (() => toast.info("회원가입 기능은 준비 중입니다"))}
-              className="w-full bg-[#BEA99C] text-white hover:bg-[#B09A8C] h-12 tracking-wider"
+              className="w-full bg-[#BEA99C] text-white hover:bg-[#B09A8C] h-12 mobile-h-14 tracking-wider text-sm mobile-text-base"
             >
               회원가입
             </Button>
 
             {/* Social Login */}
-            <div className="space-y-3">
+            <div className="space-y-3 mobile-space-y-2">
               <button
                 type="button"
                 onClick={() => toast.info("소셜 로그인 기능은 준비 중입니다")}
-                className="w-full h-12 border border-black/20 bg-white text-black hover:bg-black/5 transition-colors rounded-md flex items-center justify-center gap-2"
+                className="w-full h-12 mobile-h-14 border border-black/20 bg-white text-black hover:bg-black/5 transition-colors rounded-md flex items-center justify-center gap-2 text-sm mobile-text-xs"
               >
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 mobile-w-4 mobile-h-4" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -163,9 +163,9 @@ export function LoginPage({ onLogin, onBack, onSignupClick, onAdminLogin }: Logi
               <button
                 type="button"
                 onClick={() => toast.info("소셜 로그인 기능은 준비 중입니다")}
-                className="w-full h-12 bg-[#03C75A] text-white hover:bg-[#02b350] transition-colors rounded-md flex items-center justify-center gap-2"
+                className="w-full h-12 mobile-h-14 bg-[#03C75A] text-white hover:bg-[#02b350] transition-colors rounded-md flex items-center justify-center gap-2 text-sm mobile-text-xs"
               >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <svg className="w-5 h-5 mobile-w-4 mobile-h-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
                 </svg>
                 <span>Naver로 계속하기</span>
@@ -174,9 +174,9 @@ export function LoginPage({ onLogin, onBack, onSignupClick, onAdminLogin }: Logi
               <button
                 type="button"
                 onClick={() => toast.info("소셜 로그인 기능은 준비 중입니다")}
-                className="w-full h-12 bg-[#FEE500] text-[#000000] hover:bg-[#f5dc00] transition-colors rounded-md flex items-center justify-center gap-2"
+                className="w-full h-12 mobile-h-14 bg-[#FEE500] text-[#000000] hover:bg-[#f5dc00] transition-colors rounded-md flex items-center justify-center gap-2 text-sm mobile-text-xs"
               >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <svg className="w-5 h-5 mobile-w-4 mobile-h-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 3c-4.97 0-9 3.14-9 7.01 0 2.43 1.58 4.58 4 6.01v3.98l3.64-2.01C11.07 17.99 11.53 18 12 18c4.97 0 9-3.14 9-7.01S16.97 3 12 3z"/>
                 </svg>
                 <span>Kakao로 계속하기</span>
@@ -185,11 +185,11 @@ export function LoginPage({ onLogin, onBack, onSignupClick, onAdminLogin }: Logi
           </div>
 
           {/* Guest Login */}
-          <div className="mt-8 text-center">
+          <div className="mt-8 mobile-mt-6 text-center">
             <button
               type="button"
               onClick={onBack}
-              className="text-sm text-black/60 hover:text-brand-terra-cotta transition-colors"
+              className="text-sm mobile-text-xs text-black/60 hover:text-brand-terra-cotta transition-colors"
             >
               비회원으로 계속하기
             </button>

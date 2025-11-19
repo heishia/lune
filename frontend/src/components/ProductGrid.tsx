@@ -44,22 +44,22 @@ export function ProductGrid({ onProductClick, onViewMoreClick }: ProductGridProp
   }
 
   return (
-    <div className="bg-white py-16 max-[500px]:py-8">
-      <div className="max-w-6xl mx-auto px-4 max-[500px]:px-3">
+    <div className="bg-white py-16 mobile-py-8">
+      <div className="max-w-6xl mx-auto px-4 mobile-px-3">
         {/* Section Title */}
-        <div className="text-center mb-8 max-[500px]:mb-6">
+        <div className="text-center mb-8 mobile-mb-6">
           <h2 className="text-xs tracking-[0.3em] text-brand-terra-cotta font-bold text-[24px]">BEST</h2>
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 max-[500px]:grid-cols-1 gap-6 max-[500px]:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mobile-grid-cols-1 gap-6 mobile-gap-4">
           {products.map((product) => (
             <div 
               key={product.id} 
-              className="group cursor-pointer max-[500px]:flex max-[500px]:gap-4 max-[500px]:items-start"
+              className="group cursor-pointer mobile-flex mobile-gap-4 mobile-items-start"
               onClick={() => onProductClick?.(product.id)}
             >
-              <div className="relative mb-3 max-[500px]:mb-0 max-[500px]:w-24 max-[500px]:flex-shrink-0 bg-brand-warm-taupe/10 rounded-lg overflow-hidden aspect-square max-[500px]:aspect-square">
+              <div className="relative mb-3 mobile-mb-0 mobile-w-24 mobile-flex-shrink-0 bg-brand-warm-taupe/10 rounded-lg overflow-hidden aspect-square mobile-aspect-square">
                 <ImageWithFallback
                   src={product.image_url}
                   alt={product.name}
@@ -77,11 +77,11 @@ export function ProductGrid({ onProductClick, onViewMoreClick }: ProductGridProp
                   <Heart className="w-4 h-4 text-brand-terra-cotta" />
                 </button>
               </div>
-              <div className="text-center max-[500px]:text-left max-[500px]:flex-1">
+              <div className="text-center mobile-text-left mobile-flex-1">
                 <h3 className="text-[11px] tracking-wide mb-1.5 text-brand-terra-cotta">
                   {product.name}
                 </h3>
-                <div className="flex items-center justify-center max-[500px]:justify-start gap-2">
+                <div className="flex items-center justify-center mobile-justify-start gap-2">
                   {product.original_price && (
                     <span className="text-[10px] text-brand-warm-taupe/60 line-through">
                       {product.original_price.toLocaleString()} won

@@ -65,22 +65,22 @@ export function CategoryPage({ category, onProductClick, onBack }: CategoryPageP
     <div className="min-h-screen bg-white">
       {/* Header with Back Button */}
       <div className="bg-white border-b border-brand-warm-taupe/20 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 max-[500px]:px-3 py-6 max-[500px]:py-4">
+        <div className="max-w-6xl mx-auto px-4 mobile-px-3 py-6 mobile-py-4">
           <button
             onClick={onBack}
-            className="flex items-center gap-2 text-brand-terra-cotta hover:text-brand-warm-taupe transition-colors mb-4 max-[500px]:mb-3"
+            className="flex items-center gap-2 text-brand-terra-cotta hover:text-brand-warm-taupe transition-colors mb-4 mobile-mb-3"
           >
             <ChevronLeft className="w-5 h-5" />
             <span className="text-sm tracking-wider">BACK TO HOME</span>
           </button>
           
           <div className="text-center">
-            <div className="inline-block border-t border-b border-brand-warm-taupe/40 py-2 px-12 max-[500px]:px-6">
+            <div className="inline-block border-t border-b border-brand-warm-taupe/40 py-2 px-12 mobile-px-6">
               <h1 className="text-sm tracking-[0.3em] text-brand-terra-cotta">
                 {getCategoryTitle(category)}
               </h1>
             </div>
-            <p className="text-xs text-brand-warm-taupe mt-4 max-[500px]:mt-3 tracking-wider">
+            <p className="text-xs text-brand-warm-taupe mt-4 mobile-mt-3 tracking-wider">
               {products.length} ITEMS
             </p>
           </div>
@@ -88,7 +88,7 @@ export function CategoryPage({ category, onProductClick, onBack }: CategoryPageP
       </div>
 
       {/* Products Grid */}
-      <div className="max-w-6xl mx-auto px-4 max-[500px]:px-3 py-12 max-[500px]:py-8">
+      <div className="max-w-6xl mx-auto px-4 mobile-px-3 py-12 mobile-py-8">
         {loading ? (
           <div className="text-center py-20">
             <p className="text-brand-warm-taupe tracking-wider">로딩 중...</p>
@@ -100,14 +100,14 @@ export function CategoryPage({ category, onProductClick, onBack }: CategoryPageP
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 max-[500px]:grid-cols-1 gap-6 max-[500px]:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mobile-grid-cols-1 gap-6 mobile-gap-4">
             {products.map((product) => (
               <div
                 key={product.id}
-                className="group cursor-pointer max-[500px]:flex max-[500px]:gap-4 max-[500px]:items-start"
+                className="group cursor-pointer mobile-flex mobile-gap-4 mobile-items-start"
                 onClick={() => onProductClick(product.id)}
               >
-                <div className="relative mb-3 max-[500px]:mb-0 max-[500px]:w-24 max-[500px]:flex-shrink-0 bg-brand-warm-taupe/10 rounded-lg overflow-hidden aspect-square max-[500px]:aspect-square">
+                <div className="relative mb-3 mobile-mb-0 mobile-w-24 mobile-flex-shrink-0 bg-brand-warm-taupe/10 rounded-lg overflow-hidden aspect-square mobile-aspect-square">
                   <ImageWithFallback
                     src={product.image_url}
                     alt={product.name}
@@ -146,11 +146,11 @@ export function CategoryPage({ category, onProductClick, onBack }: CategoryPageP
                 </div>
 
                 {/* Product Info */}
-                <div className="text-center max-[500px]:text-left max-[500px]:flex-1">
+                <div className="text-center mobile-text-left mobile-flex-1">
                   <h3 className="text-[11px] tracking-wide mb-1.5 text-brand-terra-cotta group-hover:text-brand-warm-taupe transition-colors">
                     {product.name}
                   </h3>
-                  <div className="flex items-center justify-center max-[500px]:justify-start gap-2">
+                  <div className="flex items-center justify-center mobile-justify-start gap-2">
                     {product.original_price && (
                       <span className="text-[10px] text-brand-warm-taupe/60 line-through">
                         {product.original_price.toLocaleString()} won

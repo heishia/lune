@@ -77,13 +77,13 @@ export function Header({
   return (
     <>
       <header className="fixed top-0 left-0 right-0 bg-white border-b border-brand-warm-taupe/20 z-50">
-        <div className="relative flex items-start justify-between px-4 pt-6 pb-36">
+        <div className="relative flex items-start justify-between px-4 mobile-px-3 pt-6 mobile-pt-4 pb-36 mobile-pb-24">
           {/* Left - Menu */}
           <button 
             onClick={() => setIsMenuOpen(true)}
-            className="p-2 hover:bg-brand-warm-taupe/10 rounded-md transition-colors"
+            className="p-2 mobile-p-1.5 hover:bg-brand-warm-taupe/10 rounded-md transition-colors"
           >
-            <Menu className="w-5 h-5 text-brand-terra-cotta" />
+            <Menu className="w-5 h-5 mobile-w-4 mobile-h-4 text-brand-terra-cotta" />
           </button>
 
           {/* Center - Logo */}
@@ -92,46 +92,46 @@ export function Header({
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hover:opacity-80 transition-opacity"
             aria-label="Go to home"
           >
-            <img src={logo} alt="LUNE" className="h-11 w-auto" />
+            <img src={logo} alt="LUNE" className="h-11 mobile-h-8 w-auto" />
           </button>
 
           {/* Right - Icons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mobile-gap-1">
             <button 
               onClick={onSearchClick}
-              className="p-2 hover:bg-brand-warm-taupe/10 rounded-md transition-colors"
+              className="p-2 mobile-p-1.5 hover:bg-brand-warm-taupe/10 rounded-md transition-colors"
               aria-label="Search"
             >
-              <Search className="w-4 h-4 text-brand-terra-cotta" />
+              <Search className="w-4 h-4 mobile-w-3 mobile-h-3 text-brand-terra-cotta" />
             </button>
             <button 
               onClick={handleUserIconClick}
-              className="p-2 hover:bg-brand-warm-taupe/10 rounded-md transition-colors relative"
+              className="p-2 mobile-p-1.5 hover:bg-brand-warm-taupe/10 rounded-md transition-colors relative"
               aria-label={userEmail ? "My Account" : "Login"}
             >
               {userEmail ? (
                 <div className="relative">
-                  <Moon className="w-4 h-4 text-brand-terra-cotta" fill="currentColor" />
+                  <Moon className="w-4 h-4 mobile-w-3 mobile-h-3 text-brand-terra-cotta" fill="currentColor" />
                   {/* 빛나는 애니메이션 효과 */}
                   <div className="absolute inset-0 animate-ping opacity-20">
-                    <Moon className="w-4 h-4 text-brand-terra-cotta" fill="currentColor" />
+                    <Moon className="w-4 h-4 mobile-w-3 mobile-h-3 text-brand-terra-cotta" fill="currentColor" />
                   </div>
                   <div className="absolute inset-0 animate-pulse">
-                    <div className="w-4 h-4 rounded-full bg-brand-terra-cotta/20 blur-sm"></div>
+                    <div className="w-4 h-4 mobile-w-3 mobile-h-3 rounded-full bg-brand-terra-cotta/20 blur-sm"></div>
                   </div>
                 </div>
               ) : (
-                <User className="w-4 h-4 text-brand-terra-cotta" />
+                <User className="w-4 h-4 mobile-w-3 mobile-h-3 text-brand-terra-cotta" />
               )}
             </button>
             <button 
               onClick={onCartClick}
-              className="p-2 hover:bg-brand-warm-taupe/10 rounded-md transition-colors relative"
+              className="p-2 mobile-p-1.5 hover:bg-brand-warm-taupe/10 rounded-md transition-colors relative"
               aria-label="Shopping Cart"
             >
-              <ShoppingCart className="w-4 h-4 text-brand-terra-cotta" />
+              <ShoppingCart className="w-4 h-4 mobile-w-3 mobile-h-3 text-brand-terra-cotta" />
               {cartItemsCount > 0 && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-brand-terra-cotta text-brand-cream rounded-full flex items-center justify-center text-[10px]">
+                <div className="absolute -top-1 -right-1 w-4 h-4 mobile-w-3 mobile-h-3 bg-brand-terra-cotta text-brand-cream rounded-full flex items-center justify-center text-[10px] mobile-text-8">
                   {cartItemsCount > 9 ? "9+" : cartItemsCount}
                 </div>
               )}

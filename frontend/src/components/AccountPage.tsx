@@ -318,18 +318,18 @@ export function AccountPage({
       </header>
 
       {/* Main Content */}
-      <div className="pt-28 pb-20 px-4">
+      <div className="pt-28 mobile-pt-20 pb-20 mobile-pb-12 px-4 mobile-px-3">
         <div className="max-w-2xl mx-auto">
           {/* Page Title */}
-          <div className="text-center mb-16 mt-8">
-            <h1 className="text-brand-terra-cotta tracking-[0.3em]">MY ACCOUNT</h1>
+          <div className="text-center mb-16 mobile-mb-12 mt-8 mobile-mt-4">
+            <h1 className="text-brand-terra-cotta tracking-[0.3em] mobile-text-sm">MY ACCOUNT</h1>
           </div>
 
           {/* Tabs - Minimalist Style */}
-          <div className="flex justify-center gap-8 mb-16 border-b border-brand-warm-taupe/10">
+          <div className="flex justify-center gap-8 mobile-gap-4 mobile-justify-start mobile-overflow-x-auto mobile-scrollbar-hide mb-16 mobile-mb-12 border-b border-brand-warm-taupe/10">
             <button
               onClick={() => setActiveTab("profile")}
-              className={`pb-4 text-xs tracking-[0.2em] transition-all ${
+              className={`pb-4 mobile-pb-3 text-xs mobile-text-10px tracking-[0.2em] transition-all whitespace-nowrap ${
                 activeTab === "profile"
                   ? "text-brand-terra-cotta border-b-2 border-brand-terra-cotta"
                   : "text-black/40 hover:text-brand-terra-cotta"
@@ -339,7 +339,7 @@ export function AccountPage({
             </button>
             <button
               onClick={() => setActiveTab("orders")}
-              className={`pb-4 text-xs tracking-[0.2em] transition-all ${
+              className={`pb-4 mobile-pb-3 text-xs mobile-text-10px tracking-[0.2em] transition-all whitespace-nowrap ${
                 activeTab === "orders"
                   ? "text-brand-terra-cotta border-b-2 border-brand-terra-cotta"
                   : "text-black/40 hover:text-brand-terra-cotta"
@@ -349,7 +349,7 @@ export function AccountPage({
             </button>
             <button
               onClick={() => setActiveTab("wishlist")}
-              className={`pb-4 text-xs tracking-[0.2em] transition-all ${
+              className={`pb-4 mobile-pb-3 text-xs mobile-text-10px tracking-[0.2em] transition-all whitespace-nowrap ${
                 activeTab === "wishlist"
                   ? "text-brand-terra-cotta border-b-2 border-brand-terra-cotta"
                   : "text-black/40 hover:text-brand-terra-cotta"
@@ -359,7 +359,7 @@ export function AccountPage({
             </button>
             <button
               onClick={() => setActiveTab("payment")}
-              className={`pb-4 text-xs tracking-[0.2em] transition-all ${
+              className={`pb-4 mobile-pb-3 text-xs mobile-text-10px tracking-[0.2em] transition-all whitespace-nowrap ${
                 activeTab === "payment"
                   ? "text-brand-terra-cotta border-b-2 border-brand-terra-cotta"
                   : "text-black/40 hover:text-brand-terra-cotta"
@@ -373,35 +373,35 @@ export function AccountPage({
           <div className="bg-white rounded-sm shadow-sm">
             {/* Profile Tab */}
             {activeTab === "profile" && (
-              <div className="p-8 md:p-12">
+              <div className="p-8 mobile-p-4 md:p-12">
                 {/* SNS 연동 정보 */}
-                <div className="mb-8 pb-8 border-b border-brand-warm-taupe/10">
-                  <Label className="text-black text-xs tracking-wider mb-4 block">
+                <div className="mb-8 mobile-mb-6 pb-8 mobile-pb-6 border-b border-brand-warm-taupe/10">
+                  <Label className="text-black text-xs mobile-text-10px tracking-wider mb-4 mobile-mb-3 block">
                     SNS 연동 정보
                   </Label>
-                  <div className="flex gap-3">
-                    <div className={`flex items-center gap-2 px-4 py-2 rounded-md border text-xs ${
+                  <div className="flex gap-3 mobile-gap-2 mobile-flex-wrap">
+                    <div className={`flex items-center gap-2 px-4 mobile-px-3 py-2 mobile-py-1\.5 rounded-md border text-xs mobile-text-10px ${
                       socialConnections.google 
                         ? 'bg-brand-cream/30 border-brand-terra-cotta/30 text-brand-terra-cotta' 
                         : 'bg-white border-brand-warm-taupe/20 text-black/40'
                     }`}>
-                      {socialConnections.google ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      {socialConnections.google ? <Check className="w-3 h-3 mobile-w-2\.5 mobile-h-2\.5" /> : <X className="w-3 h-3 mobile-w-2\.5 mobile-h-2\.5" />}
                       Google
                     </div>
-                    <div className={`flex items-center gap-2 px-4 py-2 rounded-md border text-xs ${
+                    <div className={`flex items-center gap-2 px-4 mobile-px-3 py-2 mobile-py-1\.5 rounded-md border text-xs mobile-text-10px ${
                       socialConnections.naver 
                         ? 'bg-brand-cream/30 border-brand-terra-cotta/30 text-brand-terra-cotta' 
                         : 'bg-white border-brand-warm-taupe/20 text-black/40'
                     }`}>
-                      {socialConnections.naver ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      {socialConnections.naver ? <Check className="w-3 h-3 mobile-w-2\.5 mobile-h-2\.5" /> : <X className="w-3 h-3 mobile-w-2\.5 mobile-h-2\.5" />}
                       Naver
                     </div>
-                    <div className={`flex items-center gap-2 px-4 py-2 rounded-md border text-xs ${
+                    <div className={`flex items-center gap-2 px-4 mobile-px-3 py-2 mobile-py-1\.5 rounded-md border text-xs mobile-text-10px ${
                       socialConnections.kakao 
                         ? 'bg-brand-cream/30 border-brand-terra-cotta/30 text-brand-terra-cotta' 
                         : 'bg-white border-brand-warm-taupe/20 text-black/40'
                     }`}>
-                      {socialConnections.kakao ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      {socialConnections.kakao ? <Check className="w-3 h-3 mobile-w-2\.5 mobile-h-2\.5" /> : <X className="w-3 h-3 mobile-w-2\.5 mobile-h-2\.5" />}
                       Kakao
                     </div>
                   </div>
@@ -410,9 +410,9 @@ export function AccountPage({
                   </p>
                 </div>
 
-                <form onSubmit={handleSaveProfile} className="space-y-8">
-                  <div className="space-y-3">
-                    <Label htmlFor="name" className="text-black text-xs tracking-wider">
+                <form onSubmit={handleSaveProfile} className="space-y-8 mobile-space-y-6">
+                  <div className="space-y-3 mobile-space-y-2">
+                    <Label htmlFor="name" className="text-black text-xs mobile-text-10px tracking-wider">
                       이름
                     </Label>
                     <Input
@@ -420,12 +420,12 @@ export function AccountPage({
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="bg-white border-brand-warm-taupe/20 text-black h-12 rounded-sm focus:border-brand-terra-cotta"
+                      className="bg-white border-brand-warm-taupe/20 text-black h-12 mobile-h-14 rounded-sm focus:border-brand-terra-cotta"
                     />
                   </div>
 
-                  <div className="space-y-3">
-                    <Label htmlFor="email" className="text-black text-xs tracking-wider">
+                  <div className="space-y-3 mobile-space-y-2">
+                    <Label htmlFor="email" className="text-black text-xs mobile-text-10px tracking-wider">
                       이메일
                     </Label>
                     <Input
@@ -433,27 +433,27 @@ export function AccountPage({
                       type="email"
                       value={email}
                       disabled
-                      className="bg-brand-cream/30 border-brand-warm-taupe/20 text-black/40 h-12 rounded-sm"
+                      className="bg-brand-cream/30 border-brand-warm-taupe/20 text-black/40 h-12 mobile-h-14 rounded-sm"
                     />
-                    <p className="text-xs text-black/40 tracking-wide">이메일은 변경할 수 없습니다</p>
+                    <p className="text-xs mobile-text-10px text-black/40 tracking-wide">이메일은 변경할 수 없습니다</p>
                   </div>
 
-                  <div className="space-y-3">
-                    <Label htmlFor="phone" className="text-black text-xs tracking-wider">
+                  <div className="space-y-3 mobile-space-y-2">
+                    <Label htmlFor="phone" className="text-black text-xs mobile-text-10px tracking-wider">
                       전화번호
                     </Label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 mobile-flex-col">
                       <Input
                         id="phone"
                         type="tel"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        className="bg-white border-brand-warm-taupe/20 text-black h-12 rounded-sm focus:border-brand-terra-cotta flex-1"
+                        className="bg-white border-brand-warm-taupe/20 text-black h-12 mobile-h-14 rounded-sm focus:border-brand-terra-cotta flex-1"
                       />
                       <Button
                         type="button"
                         onClick={handlePhoneVerification}
-                        className={`h-12 px-6 text-xs tracking-wider transition-colors whitespace-nowrap ${
+                        className={`h-12 mobile-h-14 px-6 mobile-w-full text-xs mobile-text-sm tracking-wider transition-colors whitespace-nowrap ${
                           isPhoneVerified
                             ? 'bg-brand-terra-cotta text-white hover:bg-brand-warm-taupe'
                             : 'bg-[#BEA99C] text-white hover:bg-[#B09A8C]'
@@ -465,25 +465,25 @@ export function AccountPage({
                   </div>
 
                   {/* 배송지 정보 */}
-                  <div className="pt-6 pb-6 border-t border-brand-warm-taupe/10">
-                    <Label className="text-black text-xs tracking-wider mb-4 block">
+                  <div className="pt-6 mobile-pt-4 pb-6 mobile-pb-4 border-t border-brand-warm-taupe/10">
+                    <Label className="text-black text-xs mobile-text-10px tracking-wider mb-4 mobile-mb-3 block">
                       배송지 정보
                     </Label>
                     
-                    <div className="space-y-3">
-                      <div className="flex gap-2">
+                    <div className="space-y-3 mobile-space-y-2">
+                      <div className="flex gap-2 mobile-flex-col">
                         <Input
                           id="zipCode"
                           type="text"
                           value={zipCode}
                           onChange={(e) => setZipCode(e.target.value)}
                           placeholder="우편번호"
-                          className="bg-white border-brand-warm-taupe/20 text-black h-12 rounded-sm focus:border-brand-terra-cotta"
+                          className="bg-white border-brand-warm-taupe/20 text-black h-12 mobile-h-14 rounded-sm focus:border-brand-terra-cotta"
                         />
                         <Button
                           type="button"
                           onClick={() => toast.info("주소 검색 기능은 준비 중입니다")}
-                          className="h-12 px-6 text-xs tracking-wider bg-[#BEA99C] text-white hover:bg-[#B09A8C] whitespace-nowrap"
+                          className="h-12 mobile-h-14 mobile-w-full px-6 text-xs mobile-text-sm tracking-wider bg-[#BEA99C] text-white hover:bg-[#B09A8C] whitespace-nowrap"
                         >
                           주소검색
                         </Button>
@@ -495,7 +495,7 @@ export function AccountPage({
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
                         placeholder="기본 주소"
-                        className="bg-white border-brand-warm-taupe/20 text-black h-12 rounded-sm focus:border-brand-terra-cotta"
+                        className="bg-white border-brand-warm-taupe/20 text-black h-12 mobile-h-14 rounded-sm focus:border-brand-terra-cotta"
                       />
                       
                       <Input
@@ -504,15 +504,15 @@ export function AccountPage({
                         value={addressDetail}
                         onChange={(e) => setAddressDetail(e.target.value)}
                         placeholder="상세 주소"
-                        className="bg-white border-brand-warm-taupe/20 text-black h-12 rounded-sm focus:border-brand-terra-cotta"
+                        className="bg-white border-brand-warm-taupe/20 text-black h-12 mobile-h-14 rounded-sm focus:border-brand-terra-cotta"
                       />
                     </div>
                   </div>
 
-                  <div className="pt-6 space-y-3">
+                  <div className="pt-6 mobile-pt-4 space-y-3">
                     <button
                       type="submit"
-                      className="w-full bg-brand-terra-cotta text-white hover:bg-brand-warm-taupe h-12 rounded-sm tracking-wider text-xs transition-colors flex items-center justify-center"
+                      className="w-full bg-brand-terra-cotta text-white hover:bg-brand-warm-taupe h-12 mobile-h-14 rounded-sm tracking-wider text-xs mobile-text-sm transition-colors flex items-center justify-center"
                     >
                       변경사항 저장
                     </button>

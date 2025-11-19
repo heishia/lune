@@ -231,16 +231,16 @@ export function CheckoutPage({
       </header>
 
       {/* Main Content */}
-      <div className="max-w-5xl mx-auto px-4 py-12">
-        <h1 className="text-2xl text-brand-terra-cotta tracking-wider mb-8">주문/결제</h1>
+      <div className="max-w-5xl mx-auto px-4 max-[500px]:px-3 py-12 max-[500px]:py-8">
+        <h1 className="text-2xl max-[500px]:text-xl text-brand-terra-cotta tracking-wider mb-8 max-[500px]:mb-6">주문/결제</h1>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 max-[500px]:grid-cols-1 gap-8 max-[500px]:gap-6">
           {/* Left Column - 주문 정보 */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6 max-[500px]:space-y-4">
             {/* 주문 상품 */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h2 className="text-sm tracking-wider text-brand-terra-cotta mb-4">주문 상품</h2>
-              <div className="space-y-3">
+            <div className="bg-white rounded-lg p-6 max-[500px]:p-4 shadow-sm">
+              <h2 className="text-sm tracking-wider text-brand-terra-cotta mb-4 max-[500px]:mb-3">주문 상품</h2>
+              <div className="space-y-3 max-[500px]:space-y-2">
                 {loading ? (
                   <div className="text-center py-4 text-brand-warm-taupe text-sm">로딩 중...</div>
                 ) : (
@@ -248,18 +248,18 @@ export function CheckoutPage({
                     const product = products.get(item.productId);
                     if (!product) return null;
                     return (
-                      <div key={`${item.productId}-${item.color}-${item.size}`} className="flex gap-3">
+                      <div key={`${item.productId}-${item.color}-${item.size}`} className="flex gap-3 max-[500px]:gap-2">
                         <img
                           src={product.image_url}
                           alt={product.name}
-                          className="w-20 h-20 object-cover rounded"
+                          className="w-20 h-20 max-[500px]:w-16 max-[500px]:h-16 object-cover rounded"
                         />
                       <div className="flex-1">
-                        <p className="text-sm text-black">{product.name}</p>
-                        <p className="text-xs text-brand-warm-taupe mt-1">
+                        <p className="text-sm max-[500px]:text-xs text-black">{product.name}</p>
+                        <p className="text-xs max-[500px]:text-[10px] text-brand-warm-taupe mt-1">
                           {item.color} / {item.size} / {item.quantity}개
                         </p>
-                        <p className="text-sm text-brand-terra-cotta mt-1">
+                        <p className="text-sm max-[500px]:text-xs text-brand-terra-cotta mt-1">
                           {(product.price * item.quantity).toLocaleString()}원
                         </p>
                       </div>
@@ -271,9 +271,9 @@ export function CheckoutPage({
             </div>
 
             {/* 주문자 정보 */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h2 className="text-sm tracking-wider text-brand-terra-cotta mb-4">주문자 정보</h2>
-              <div className="space-y-3">
+            <div className="bg-white rounded-lg p-6 max-[500px]:p-4 shadow-sm">
+              <h2 className="text-sm tracking-wider text-brand-terra-cotta mb-4 max-[500px]:mb-3">주문자 정보</h2>
+              <div className="space-y-3 max-[500px]:space-y-2">
                 <div>
                   <Label htmlFor="name" className="text-xs text-brand-warm-taupe">
                     이름
@@ -315,20 +315,20 @@ export function CheckoutPage({
             </div>
 
             {/* 배송지 정보 */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h2 className="text-sm tracking-wider text-brand-terra-cotta mb-4">배송지 정보</h2>
-              <div className="space-y-3">
-                <div className="flex gap-2">
+            <div className="bg-white rounded-lg p-6 max-[500px]:p-4 shadow-sm">
+              <h2 className="text-sm tracking-wider text-brand-terra-cotta mb-4 max-[500px]:mb-3">배송지 정보</h2>
+              <div className="space-y-3 max-[500px]:space-y-2">
+                <div className="flex gap-2 max-[500px]:flex-col">
                   <Input
                     value={zipCode}
                     onChange={(e) => setZipCode(e.target.value)}
-                    className="border-brand-warm-taupe/20"
+                    className="border-brand-warm-taupe/20 max-[500px]:h-12"
                     placeholder="우편번호"
                   />
                   <Button
                     type="button"
                     variant="outline"
-                    className="border-brand-warm-taupe/30 whitespace-nowrap"
+                    className="border-brand-warm-taupe/30 whitespace-nowrap max-[500px]:h-12 max-[500px]:w-full"
                     onClick={() => toast.info("주소 검색 기능은 준비 중입니다")}
                   >
                     주소검색
@@ -360,21 +360,21 @@ export function CheckoutPage({
             </div>
 
             {/* 쿠폰 / 포인트 */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h2 className="text-sm tracking-wider text-brand-terra-cotta mb-4">
+            <div className="bg-white rounded-lg p-6 max-[500px]:p-4 shadow-sm">
+              <h2 className="text-sm tracking-wider text-brand-terra-cotta mb-4 max-[500px]:mb-3">
                 할인 / 포인트
               </h2>
-              <div className="space-y-4">
+              <div className="space-y-4 max-[500px]:space-y-3">
                 {/* 쿠폰 선택 */}
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <Tag className="w-4 h-4 text-brand-terra-cotta" />
-                    <Label className="text-xs text-brand-warm-taupe">쿠폰 선택</Label>
+                    <Tag className="w-4 h-4 max-[500px]:w-3 max-[500px]:h-3 text-brand-terra-cotta" />
+                    <Label className="text-xs max-[500px]:text-[10px] text-brand-warm-taupe">쿠폰 선택</Label>
                   </div>
                   <select
                     value={selectedCoupon}
                     onChange={(e) => setSelectedCoupon(e.target.value)}
-                    className="w-full px-3 py-2 border border-brand-warm-taupe/20 rounded-sm text-sm"
+                    className="w-full px-3 py-2 max-[500px]:h-12 border border-brand-warm-taupe/20 rounded-sm text-sm max-[500px]:text-xs"
                   >
                     <option value="">쿠폰을 선택하세요</option>
                     {userCoupons.map((coupon) => (
@@ -394,24 +394,24 @@ export function CheckoutPage({
                 {/* 포인트 사용 */}
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <Coins className="w-4 h-4 text-brand-terra-cotta" />
-                    <Label className="text-xs text-brand-warm-taupe">
+                    <Coins className="w-4 h-4 max-[500px]:w-3 max-[500px]:h-3 text-brand-terra-cotta" />
+                    <Label className="text-xs max-[500px]:text-[10px] text-brand-warm-taupe">
                       포인트 사용 (보유: {userPoints.toLocaleString()}P)
                     </Label>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 max-[500px]:flex-col">
                     <Input
                       type="number"
                       value={usePoints}
                       onChange={(e) => setUsePoints(Math.max(0, parseInt(e.target.value) || 0))}
-                      className="border-brand-warm-taupe/20"
+                      className="border-brand-warm-taupe/20 max-[500px]:h-12"
                       placeholder="사용할 포인트"
                       max={maxPointsUsable}
                     />
                     <Button
                       type="button"
                       variant="outline"
-                      className="border-brand-warm-taupe/30 whitespace-nowrap"
+                      className="border-brand-warm-taupe/30 whitespace-nowrap max-[500px]:h-12 max-[500px]:w-full"
                       onClick={() => setUsePoints(maxPointsUsable)}
                     >
                       전액사용
@@ -425,8 +425,8 @@ export function CheckoutPage({
             </div>
 
             {/* 결제 수단 */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h2 className="text-sm tracking-wider text-brand-terra-cotta mb-4">결제 수단</h2>
+            <div className="bg-white rounded-lg p-6 max-[500px]:p-4 shadow-sm">
+              <h2 className="text-sm tracking-wider text-brand-terra-cotta mb-4 max-[500px]:mb-3">결제 수단</h2>
               <RadioGroup value={paymentMethod} onValueChange={(v: any) => setPaymentMethod(v)}>
                 {/* 카드 결제 */}
                 <div className="border border-brand-warm-taupe/20 rounded-md p-4 mb-3">
@@ -465,13 +465,13 @@ export function CheckoutPage({
                     </Label>
                   </div>
                   {paymentMethod === "simple" && (
-                    <div className="mt-3 pl-6 grid grid-cols-3 gap-2">
+                    <div className="mt-3 pl-6 max-[500px]:pl-4 grid grid-cols-3 max-[500px]:grid-cols-2 gap-2 max-[500px]:gap-1.5">
                       {["카카오페이", "네이버페이", "토스페이", "페이코", "삼성페이", "애플페이"].map(
                         (pay) => (
                           <button
                             key={pay}
                             onClick={() => setSelectedSimplePay(pay)}
-                            className={`py-2 px-3 text-xs rounded border transition-colors ${
+                            className={`py-2 max-[500px]:py-2.5 px-3 max-[500px]:px-2 text-xs max-[500px]:text-[10px] rounded border transition-colors ${
                               selectedSimplePay === pay
                                 ? "border-brand-terra-cotta bg-brand-terra-cotta text-white"
                                 : "border-brand-warm-taupe/20 text-brand-warm-taupe hover:border-brand-terra-cotta"
@@ -525,8 +525,8 @@ export function CheckoutPage({
             </div>
 
             {/* 약관 동의 */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <div className="space-y-3">
+            <div className="bg-white rounded-lg p-6 max-[500px]:p-4 shadow-sm">
+              <div className="space-y-3 max-[500px]:space-y-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <Checkbox checked={agreeAll} onCheckedChange={handleAgreeAll} />
                   <span className="text-sm text-black">전체 동의</span>
@@ -553,10 +553,10 @@ export function CheckoutPage({
           </div>
 
           {/* Right Column - 결제 금액 */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg p-6 shadow-sm sticky top-24">
-              <h2 className="text-sm tracking-wider text-brand-terra-cotta mb-4">결제 금액</h2>
-              <div className="space-y-3 text-sm">
+          <div className="lg:col-span-1 max-[500px]:order-first">
+            <div className="bg-white rounded-lg p-6 max-[500px]:p-4 shadow-sm sticky top-24 max-[500px]:sticky max-[500px]:top-0 max-[500px]:relative">
+              <h2 className="text-sm tracking-wider text-brand-terra-cotta mb-4 max-[500px]:mb-3">결제 금액</h2>
+              <div className="space-y-3 max-[500px]:space-y-2 text-sm max-[500px]:text-xs">
                 <div className="flex justify-between text-brand-warm-taupe">
                   <span>상품금액</span>
                   <span>{subtotal.toLocaleString()}원</span>
@@ -587,7 +587,7 @@ export function CheckoutPage({
 
               <Button
                 onClick={handlePayment}
-                className="w-full mt-6 bg-brand-terra-cotta text-white hover:bg-brand-warm-taupe h-12 flex items-center justify-center"
+                className="w-full mt-6 max-[500px]:mt-4 bg-brand-terra-cotta text-white hover:bg-brand-warm-taupe h-12 max-[500px]:h-14 flex items-center justify-center text-sm max-[500px]:text-base"
               >
                 {totalAmount.toLocaleString()}원 결제하기
               </Button>

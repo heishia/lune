@@ -107,17 +107,17 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
       </header>
 
       {/* Main Content */}
-      <div className="pt-32 pb-20 px-4">
+      <div className="pt-32 mobile-pt-24 pb-20 mobile-pb-12 px-4 mobile-px-3">
         <div className="max-w-md mx-auto">
           {/* Title */}
-          <div className="text-center mb-12">
-            <h1 className="text-2xl text-brand-terra-cotta tracking-wider">회원가입</h1>
+          <div className="text-center mb-12 mobile-mb-8">
+            <h1 className="text-2xl mobile-text-xl text-brand-terra-cotta tracking-wider">회원가입</h1>
           </div>
 
           {/* Signup Form */}
-          <form onSubmit={handleSignup} className="space-y-6">
+          <form onSubmit={handleSignup} className="space-y-6 mobile-space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-brand-terra-cotta text-sm">
+              <Label htmlFor="name" className="text-brand-terra-cotta text-sm mobile-text-xs">
                 이름 <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -126,13 +126,13 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="이름을 입력하세요"
-                className="bg-white border-brand-warm-taupe/30 text-brand-terra-cotta h-12"
+                className="bg-white border-brand-warm-taupe/30 text-brand-terra-cotta h-12 mobile-h-14"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-brand-terra-cotta text-sm">
+              <Label htmlFor="email" className="text-brand-terra-cotta text-sm mobile-text-xs">
                 이메일 <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -141,13 +141,13 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="이메일을 입력하세요"
-                className="bg-white border-brand-warm-taupe/30 text-brand-terra-cotta h-12"
+                className="bg-white border-brand-warm-taupe/30 text-brand-terra-cotta h-12 mobile-h-14"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone" className="text-brand-terra-cotta text-sm">
+              <Label htmlFor="phone" className="text-brand-terra-cotta text-sm mobile-text-xs">
                 휴대폰 번호 <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -156,13 +156,13 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="01012345678 (하이픈 없이)"
-                className="bg-white border-brand-warm-taupe/30 text-brand-terra-cotta h-12"
+                className="bg-white border-brand-warm-taupe/30 text-brand-terra-cotta h-12 mobile-h-14"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-brand-terra-cotta text-sm">
+              <Label htmlFor="password" className="text-brand-terra-cotta text-sm mobile-text-xs">
                 비밀번호 <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -171,13 +171,13 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="8자 이상 입력하세요"
-                className="bg-white border-brand-warm-taupe/30 text-brand-terra-cotta h-12"
+                className="bg-white border-brand-warm-taupe/30 text-brand-terra-cotta h-12 mobile-h-14"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-brand-terra-cotta text-sm">
+              <Label htmlFor="confirmPassword" className="text-brand-terra-cotta text-sm mobile-text-xs">
                 비밀번호 확인 <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -186,13 +186,13 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="비밀번호를 다시 입력하세요"
-                className="bg-white border-brand-warm-taupe/30 text-brand-terra-cotta h-12"
+                className="bg-white border-brand-warm-taupe/30 text-brand-terra-cotta h-12 mobile-h-14"
                 required
               />
             </div>
 
             {/* Terms Agreement */}
-            <div className="space-y-4 pt-4 border-t border-brand-warm-taupe/20">
+            <div className="space-y-4 mobile-space-y-3 pt-4 mobile-pt-3 border-t border-brand-warm-taupe/20">
               <div className="flex items-center space-x-2">
                 <Checkbox 
                   id="agreeAll"
@@ -202,13 +202,13 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
                 />
                 <Label 
                   htmlFor="agreeAll" 
-                  className="text-brand-terra-cotta cursor-pointer"
+                  className="text-brand-terra-cotta mobile-text-sm cursor-pointer"
                 >
                   전체 동의
                 </Label>
               </div>
 
-              <div className="ml-6 space-y-3">
+              <div className="ml-6 mobile-ml-4 space-y-3 mobile-space-y-2">
                 <div className="flex items-center space-x-2">
                   <Checkbox 
                     id="agreeTerms"
@@ -218,7 +218,7 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
                   />
                   <Label 
                     htmlFor="agreeTerms" 
-                    className="text-sm text-brand-warm-taupe cursor-pointer"
+                    className="text-sm mobile-text-xs text-brand-warm-taupe cursor-pointer"
                   >
                     [필수] 이용약관 동의
                   </Label>
@@ -233,7 +233,7 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
                   />
                   <Label 
                     htmlFor="agreePrivacy" 
-                    className="text-sm text-brand-warm-taupe cursor-pointer"
+                    className="text-sm mobile-text-xs text-brand-warm-taupe cursor-pointer"
                   >
                     [필수] 개인정보 수집 및 이용 동의
                   </Label>
@@ -248,7 +248,7 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
                   />
                   <Label 
                     htmlFor="agreeMarketing" 
-                    className="text-sm text-brand-warm-taupe cursor-pointer"
+                    className="text-sm mobile-text-xs text-brand-warm-taupe cursor-pointer"
                   >
                     [선택] 마케팅 정보 수신 동의
                   </Label>
@@ -259,15 +259,15 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
             {/* Signup Button */}
             <Button
               type="submit"
-              className="w-full bg-brand-terra-cotta text-brand-cream hover:bg-brand-warm-taupe h-12 tracking-wider"
+              className="w-full bg-brand-terra-cotta text-brand-cream hover:bg-brand-warm-taupe h-12 mobile-h-14 tracking-wider text-sm mobile-text-base"
             >
               회원가입
             </Button>
           </form>
 
           {/* Login Link */}
-          <div className="mt-8 text-center">
-            <p className="text-sm text-brand-warm-taupe">
+          <div className="mt-8 mobile-mt-6 text-center">
+            <p className="text-sm mobile-text-xs text-brand-warm-taupe">
               이미 계정이 있으신가요?{" "}
               <button
                 type="button"
