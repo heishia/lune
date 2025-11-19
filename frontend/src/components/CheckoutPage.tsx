@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { toast } from "sonner";
 import logo from "figma:asset/e95f335bacb8348ed117f587f5d360e078bf26b6.png";
 import { CartItem } from "../types/cart";
-import { getProductById } from "../data/products";
+import { getProduct, Product } from "../utils/api";
 
 interface CheckoutPageProps {
   cartItems: CartItem[];
@@ -94,9 +94,41 @@ export function CheckoutPage({
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
 
+  // 상품 정보
+  const [products, setProducts] = useState<Map<number, Product>>(new Map());
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const productMap = new Map<number, Product>();
+        for (const item of cartItems) {
+          if (!productMap.has(item.productId)) {
+            try {
+              const product = await getProduct(item.productId);
+              productMap.set(item.productId, product);
+            } catch (error) {
+              console.error(`Failed to fetch product ${item.productId}:`, error);
+            }
+          }
+        }
+        setProducts(productMap);
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (cartItems.length > 0) {
+      fetchProducts();
+    }
+  }, [cartItems]);
+
   // 가격 계산
   const subtotal = cartItems.reduce((sum, item) => {
-    const product = getProductById(item.productId);
+    const product = products.get(item.productId);
     return sum + (product?.price || 0) * item.quantity;
   }, 0);
 
@@ -209,16 +241,19 @@ export function CheckoutPage({
             <div className="bg-white rounded-lg p-6 shadow-sm">
               <h2 className="text-sm tracking-wider text-brand-terra-cotta mb-4">주문 상품</h2>
               <div className="space-y-3">
-                {cartItems.map((item) => {
-                  const product = getProductById(item.productId);
-                  if (!product) return null;
-                  return (
-                    <div key={`${item.productId}-${item.color}-${item.size}`} className="flex gap-3">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-20 h-20 object-cover rounded"
-                      />
+                {loading ? (
+                  <div className="text-center py-4 text-brand-warm-taupe text-sm">로딩 중...</div>
+                ) : (
+                  cartItems.map((item) => {
+                    const product = products.get(item.productId);
+                    if (!product) return null;
+                    return (
+                      <div key={`${item.productId}-${item.color}-${item.size}`} className="flex gap-3">
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className="w-20 h-20 object-cover rounded"
+                        />
                       <div className="flex-1">
                         <p className="text-sm text-black">{product.name}</p>
                         <p className="text-xs text-brand-warm-taupe mt-1">
@@ -230,7 +265,8 @@ export function CheckoutPage({
                       </div>
                     </div>
                   );
-                })}
+                  })
+                )}
               </div>
             </div>
 

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ChevronLeft } from "lucide-react";
 import logo from "figma:asset/e95f335bacb8348ed117f587f5d360e078bf26b6.png";
 import { Checkbox } from "./ui/checkbox";
+import { signup } from "../utils/api";
 
 interface SignupPageProps {
   onSignup: (email: string, name: string) => void;
@@ -23,7 +24,7 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // 유효성 검사
@@ -62,14 +63,25 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
     }
 
     // 회원가입 처리
-    onSignup(email, name);
-    toast.success("회원가입이 완료되었습니다!");
-    
-    // 로그인 페이지로 이동
-    if (onLoginClick) {
-      onLoginClick();
-    } else {
-      onBack();
+    try {
+      await signup({
+        email,
+        password,
+        name,
+        phone: phone.replace(/-/g, ""),
+        marketingAgreed: agreeMarketing,
+      });
+      toast.success("회원가입이 완료되었습니다!");
+      onSignup(email, name);
+      
+      // 로그인 페이지로 이동
+      if (onLoginClick) {
+        onLoginClick();
+      } else {
+        onBack();
+      }
+    } catch (error: any) {
+      toast.error(error.message || "회원가입에 실패했습니다");
     }
   };
 

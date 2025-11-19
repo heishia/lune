@@ -21,14 +21,16 @@ export function InstagramFeed() {
   const fetchInstagramMedia = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-8ed17d84/instagram/media`,
-        {
-          headers: {
-            Authorization: `Bearer ${publicAnonKey}`,
-          },
-        }
-      );
+      // 개발 환경에서는 로컬 백엔드 사용, 프로덕션에서는 Supabase Edge Function 사용
+      const apiUrl = import.meta.env.DEV
+        ? 'http://localhost:8000/instagram/media'
+        : `https://${projectId}.supabase.co/functions/v1/make-server-8ed17d84/instagram/media`;
+      
+      const response = await fetch(apiUrl, {
+        headers: {
+          Authorization: `Bearer ${publicAnonKey}`,
+        },
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -92,19 +94,19 @@ export function InstagramFeed() {
   };
 
   return (
-    <div className="bg-brand-cream py-8">
-      <div className="max-w-6xl mx-auto px-4">
+    <div className="bg-brand-cream py-8 max-[500px]:py-6">
+      <div className="max-w-6xl mx-auto px-4 max-[500px]:px-3">
         {/* Grid Layout */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 max-[500px]:grid-cols-1 gap-3 max-[500px]:gap-4">
           {/* First large image */}
-          <div className="md:row-span-2 relative group cursor-pointer overflow-hidden rounded-lg">
+          <div className="md:row-span-2 max-[500px]:row-span-1 relative group cursor-pointer overflow-hidden rounded-lg aspect-square max-[500px]:aspect-[4/3]">
             <ImageWithFallback
               src={featuredImage || ""}
               alt="Featured Image"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
             <div className="absolute inset-0 bg-brand-terra-cotta/20 group-hover:bg-brand-terra-cotta/30 transition-colors" />
-            <div className="absolute bottom-4 left-4 right-4 text-brand-cream">
+            <div className="absolute bottom-4 left-4 right-4 max-[500px]:bottom-3 max-[500px]:left-3 max-[500px]:right-3 text-brand-cream">
               <p className="text-[10px] tracking-wider">FEATURED IMAGE</p>
             </div>
           </div>
@@ -113,7 +115,7 @@ export function InstagramFeed() {
           {mediaItems.map((item) => (
             <div
               key={item.id}
-              className="relative group cursor-pointer overflow-hidden rounded-lg aspect-square"
+              className="relative group cursor-pointer overflow-hidden rounded-lg aspect-square max-[500px]:aspect-[4/3]"
             >
               <ImageWithFallback
                 src={item.imageUrl}
@@ -122,14 +124,14 @@ export function InstagramFeed() {
               />
               <div className="absolute inset-0 bg-brand-terra-cotta/20 group-hover:bg-brand-terra-cotta/30 transition-colors" />
               <div className="absolute bottom-3 left-3 right-3 text-brand-cream">
-                <p className="text-[9px] tracking-wider">{item.caption}</p>
+                <p className="text-[9px] max-[500px]:text-[10px] tracking-wider">{item.caption}</p>
               </div>
             </div>
           ))}
         </div>
 
         {/* Instagram Link */}
-        <div className="text-center mt-8">
+        <div className="text-center mt-8 max-[500px]:mt-6">
           <p className="text-xs tracking-widest text-brand-warm-taupe">@ LUNE_OFFICIAL</p>
         </div>
       </div>

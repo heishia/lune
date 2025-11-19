@@ -1,3 +1,4 @@
+
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
@@ -15,7 +16,6 @@ pwd_context = CryptContext(
     bcrypt__ident="2b",
     deprecated="auto"
 )
-settings = get_settings()
 security_scheme = HTTPBearer(auto_error=True)
 
 
@@ -32,6 +32,7 @@ def create_access_token(
     expires_minutes: Optional[int] = None,
     extra_claims: Optional[dict[str, Any]] = None,
 ) -> str:
+    settings = get_settings()
     expire_delta = expires_minutes or settings.access_token_expire_minutes
     now = datetime.now(timezone.utc)
     to_encode: dict[str, Any] = {
@@ -51,6 +52,7 @@ def create_access_token(
 
 
 def decode_access_token(token: str) -> dict[str, Any]:
+    settings = get_settings()
     try:
         payload = jwt.decode(
             token,

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, LogOut, Image as ImageIcon, Instagram, Package, Calendar, Gift, Megaphone } from "lucide-react";
+import { Plus, Edit, Trash2, LogOut, Image as ImageIcon, Instagram, Package, Calendar, Gift, Megaphone, MessageSquare } from "lucide-react";
 import logo from "figma:asset/e95f335bacb8348ed117f587f5d360e078bf26b6.png";
 import { projectId, publicAnonKey } from "../utils/supabase/info";
 import { InstagramSettings } from "./InstagramSettings";
@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Checkbox } from "./ui/checkbox";
 import { BannerManagement } from "./BannerManagement";
 import { CouponPointManagement } from "./CouponPointManagement";
+import { getKakaoSettings, updateKakaoSettings, getMarketingUsers, sendKakaoMessage, type MarketingUser } from "../utils/api";
 
 interface Product {
   id: number;
@@ -53,6 +54,14 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [featuredImageUrl, setFeaturedImageUrl] = useState("");
   const [instagramLoading, setInstagramLoading] = useState(false);
   const [hasInstagramToken, setHasInstagramToken] = useState(false);
+
+  // 카카오톡 설정 상태
+  const [kakaoAccessToken, setKakaoAccessToken] = useState("");
+  const [kakaoAuthUrl, setKakaoAuthUrl] = useState("");
+  const [kakaoLoading, setKakaoLoading] = useState(false);
+  const [marketingUsers, setMarketingUsers] = useState<MarketingUser[]>([]);
+  const [messageText, setMessageText] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   // 폼 상태
   const [formData, setFormData] = useState({
@@ -105,6 +114,12 @@ export function AdminPage({ onBack }: AdminPageProps) {
   useEffect(() => {
     fetchProducts();
   }, [filterCategory]);
+
+  // 카카오톡 설정 초기 로드
+  useEffect(() => {
+    fetchKakaoSettings();
+    fetchMarketingUsers();
+  }, []);
 
   // 상품 추가/수정 다이얼로그 열기
   const handleOpenDialog = (product?: Product) => {
@@ -248,6 +263,94 @@ export function AdminPage({ onBack }: AdminPageProps) {
     }));
   };
 
+  // 카카오톡 설정 조회
+  const fetchKakaoSettings = async () => {
+    try {
+      setKakaoLoading(true);
+      const settings = await getKakaoSettings();
+      setKakaoAccessToken(settings.access_token || "");
+      setKakaoAuthUrl(settings.auth_url || "");
+    } catch (error) {
+      console.error("Error fetching Kakao settings:", error);
+      toast.error("카카오톡 설정을 불러오는데 실패했습니다");
+    } finally {
+      setKakaoLoading(false);
+    }
+  };
+
+  // 카카오톡 OAuth 인가 페이지 열기
+  const handleKakaoAuth = () => {
+    if (kakaoAuthUrl) {
+      window.open(kakaoAuthUrl, "_blank", "width=500,height=600");
+      toast.info("카카오톡 로그인 페이지가 열렸습니다. 로그인 후 인가 코드를 받아주세요.");
+    } else {
+      toast.error("카카오톡 인가 URL을 불러올 수 없습니다. REST API 키와 리다이렉트 URI를 확인해주세요.");
+    }
+  };
+
+  // 마케팅 동의 사용자 목록 조회
+  const fetchMarketingUsers = async () => {
+    try {
+      const response = await getMarketingUsers();
+      setMarketingUsers(response.users || []);
+    } catch (error) {
+      console.error("Error fetching marketing users:", error);
+      toast.error("마케팅 동의 사용자 목록을 불러오는데 실패했습니다");
+    }
+  };
+
+  // 카카오톡 액세스 토큰 저장
+  const handleSaveKakaoToken = async () => {
+    if (!kakaoAccessToken.trim()) {
+      toast.error("액세스 토큰을 입력해주세요");
+      return;
+    }
+
+    try {
+      setKakaoLoading(true);
+      await updateKakaoSettings(kakaoAccessToken);
+      toast.success("카카오톡 액세스 토큰이 저장되었습니다");
+    } catch (error: any) {
+      console.error("Error saving Kakao token:", error);
+      toast.error(error.message || "액세스 토큰 저장에 실패했습니다");
+    } finally {
+      setKakaoLoading(false);
+    }
+  };
+
+  // 카카오톡 메시지 전송
+  const handleSendKakaoMessage = async () => {
+    if (!messageText.trim()) {
+      toast.error("메시지를 입력해주세요");
+      return;
+    }
+
+    if (marketingUsers.length === 0) {
+      toast.error("마케팅 동의한 사용자가 없습니다");
+      return;
+    }
+
+    if (!confirm(`마케팅 동의한 ${marketingUsers.length}명에게 메시지를 전송하시겠습니까?`)) {
+      return;
+    }
+
+    try {
+      setSendingMessage(true);
+      const response = await sendKakaoMessage(messageText);
+      if (response.success) {
+        toast.success(response.message);
+        setMessageText("");
+      } else {
+        toast.error(response.message);
+      }
+    } catch (error: any) {
+      console.error("Error sending Kakao message:", error);
+      toast.error(error.message || "메시지 전송에 실패했습니다");
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-brand-cream">
       {/* Header */}
@@ -271,7 +374,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <Tabs defaultValue="products" className="w-full">
-          <TabsList className="grid w-full max-w-5xl grid-cols-5 mb-6">
+          <TabsList className="grid w-full max-w-6xl grid-cols-6 mb-6">
             <TabsTrigger value="products">상품 관리</TabsTrigger>
             <TabsTrigger value="orders">
               <Package className="w-4 h-4 mr-2" />
@@ -284,6 +387,10 @@ export function AdminPage({ onBack }: AdminPageProps) {
             <TabsTrigger value="coupons">
               <Gift className="w-4 h-4 mr-2" />
               쿠폰&포인트
+            </TabsTrigger>
+            <TabsTrigger value="kakao">
+              <MessageSquare className="w-4 h-4 mr-2" />
+              카카오톡 메시지
             </TabsTrigger>
             <TabsTrigger value="instagram">
               <Instagram className="w-4 h-4 mr-2" />
@@ -599,6 +706,167 @@ export function AdminPage({ onBack }: AdminPageProps) {
           {/* 쿠폰&포인트 관리 탭 */}
           <TabsContent value="coupons">
             <CouponPointManagement />
+          </TabsContent>
+
+          {/* 카카오톡 메시지 탭 */}
+          <TabsContent value="kakao" className="space-y-6">
+            <div className="space-y-6">
+              {/* 카카오톡 액세스 토큰 설정 */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-brand-terra-cotta mb-4">카카오톡 액세스 토큰 설정</h2>
+                <div className="space-y-4">
+                  {kakaoAccessToken ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded">
+                        <span className="text-green-700 text-sm">✓ 액세스 토큰이 설정되어 있습니다</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={fetchKakaoSettings}
+                          disabled={kakaoLoading}
+                          variant="outline"
+                          className="border-brand-warm-taupe/30"
+                        >
+                          설정 새로고침
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label className="text-brand-terra-cotta">
+                        OAuth 인가를 통해 토큰 발급받기
+                      </Label>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleKakaoAuth}
+                          disabled={kakaoLoading || !kakaoAuthUrl}
+                          className="bg-brand-terra-cotta text-white hover:bg-brand-warm-taupe flex-1"
+                        >
+                          카카오톡 로그인으로 토큰 발급받기
+                        </Button>
+                        <Button
+                          onClick={fetchKakaoSettings}
+                          disabled={kakaoLoading}
+                          variant="outline"
+                          className="border-brand-warm-taupe/30"
+                        >
+                          새로고침
+                        </Button>
+                      </div>
+                      <p className="text-xs text-brand-warm-taupe">
+                        카카오톡 로그인을 통해 자동으로 액세스 토큰을 발급받습니다.
+                        <br />
+                        또는 아래에서 수동으로 토큰을 입력할 수 있습니다.
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="border-t border-brand-warm-taupe/20 pt-4">
+                    <Label htmlFor="kakao-token" className="text-brand-terra-cotta">
+                      수동으로 액세스 토큰 입력 (선택사항)
+                    </Label>
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        id="kakao-token"
+                        type="password"
+                        value={kakaoAccessToken}
+                        onChange={(e) => setKakaoAccessToken(e.target.value)}
+                        placeholder="카카오톡 액세스 토큰을 직접 입력하세요"
+                        className="border-brand-warm-taupe/30 flex-1"
+                      />
+                      <Button
+                        onClick={handleSaveKakaoToken}
+                        disabled={kakaoLoading}
+                        variant="outline"
+                        className="border-brand-warm-taupe/30"
+                      >
+                        {kakaoLoading ? "저장 중..." : "저장"}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-brand-warm-taupe mt-1">
+                      카카오톡 개발자 콘솔에서 직접 발급받은 액세스 토큰을 입력할 수 있습니다
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 마케팅 동의 사용자 목록 */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-brand-terra-cotta">마케팅 동의 사용자</h2>
+                  <Button
+                    onClick={fetchMarketingUsers}
+                    variant="outline"
+                    className="border-brand-warm-taupe/30"
+                  >
+                    목록 새로고침
+                  </Button>
+                </div>
+                {marketingUsers.length === 0 ? (
+                  <div className="text-center py-8 text-brand-warm-taupe">
+                    마케팅 동의한 사용자가 없습니다
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>이름</TableHead>
+                          <TableHead>이메일</TableHead>
+                          <TableHead>전화번호</TableHead>
+                          <TableHead>가입일</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {marketingUsers.map((user) => (
+                          <TableRow key={user.id}>
+                            <TableCell>{user.name}</TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell>{user.phone}</TableCell>
+                            <TableCell className="text-xs text-brand-warm-taupe">
+                              {new Date(user.created_at).toLocaleDateString("ko-KR")}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    <div className="mt-4 text-sm text-brand-warm-taupe">
+                      총 {marketingUsers.length}명의 사용자가 마케팅 메시지 수신에 동의했습니다
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 메시지 전송 */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-brand-terra-cotta mb-4">메시지 전송</h2>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="message" className="text-brand-terra-cotta">
+                      메시지 내용
+                    </Label>
+                    <Textarea
+                      id="message"
+                      value={messageText}
+                      onChange={(e) => setMessageText(e.target.value)}
+                      placeholder="전송할 메시지를 입력하세요"
+                      className="border-brand-warm-taupe/30 min-h-32"
+                      rows={6}
+                    />
+                    <p className="text-xs text-brand-warm-taupe">
+                      위 목록의 마케팅 동의 사용자들에게 메시지가 전송됩니다
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleSendKakaoMessage}
+                    disabled={sendingMessage || !messageText.trim() || marketingUsers.length === 0}
+                    className="w-full bg-brand-terra-cotta text-white hover:bg-brand-warm-taupe"
+                  >
+                    {sendingMessage ? "전송 중..." : `메시지 보내기 (${marketingUsers.length}명)`}
+                  </Button>
+                </div>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Instagram 설정 탭 */}

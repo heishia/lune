@@ -1,6 +1,9 @@
 import { projectId, publicAnonKey } from './supabase/info';
 
-const API_BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-8ed17d84`;
+// 개발 환경에서는 로컬 백엔드 사용, 프로덕션에서는 Supabase Edge Function 사용
+const API_BASE_URL = import.meta.env.DEV 
+  ? 'http://localhost:8000'
+  : `https://${projectId}.supabase.co/functions/v1/make-server-8ed17d84`;
 
 // 로컬 스토리지에서 토큰 가져오기
 export function getToken(): string | null {
@@ -82,6 +85,7 @@ export interface AuthResponse {
     id: string;
     email: string;
     name: string;
+    is_admin?: boolean;
   };
   token: string;
 }
@@ -146,7 +150,7 @@ export interface ProductsResponse {
   products: Product[];
   total: number;
   page: number;
-  totalPages: number;
+  total_pages: number;
 }
 
 export async function getProducts(params?: {
@@ -329,5 +333,58 @@ export async function updateProduct(id: number, data: Partial<Product>): Promise
 export async function deleteProduct(id: number): Promise<{ success: boolean }> {
   return apiRequest(`/products/${id}`, {
     method: 'DELETE',
+  });
+}
+
+// ==========================================
+// Kakao API (카카오톡 메시지)
+// ==========================================
+
+export interface KakaoSettings {
+  access_token: string;
+  has_token: boolean;
+  auth_url?: string;
+}
+
+export interface MarketingUser {
+  id: string;
+  email: string;
+  name: string;
+  phone: string;
+  marketing_agreed: boolean;
+  created_at: string;
+}
+
+export interface MarketingUsersResponse {
+  users: MarketingUser[];
+  total: number;
+}
+
+export interface SendMessageResponse {
+  success: boolean;
+  sent_count: number;
+  failed_count: number;
+  message: string;
+}
+
+export async function getKakaoSettings(): Promise<KakaoSettings> {
+  return apiRequest('/kakao/settings');
+}
+
+export async function updateKakaoSettings(accessToken: string): Promise<KakaoSettings> {
+  return apiRequest('/kakao/settings', {
+    method: 'PUT',
+    body: JSON.stringify({ access_token: accessToken }),
+  });
+}
+
+export async function getMarketingUsers(): Promise<MarketingUsersResponse> {
+  return apiRequest('/kakao/users');
+}
+
+export async function sendKakaoMessage(message: string): Promise<SendMessageResponse> {
+  return apiRequest('/kakao/send', {
+    method: 'POST',
+    body: JSON.stringify({ message }),
   });
 }

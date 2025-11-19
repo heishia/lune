@@ -14,10 +14,10 @@ export function CategorySection() {
       <div className="max-w-5xl mx-auto px-6">
         {/* Brand Images - 3 images in a row */}
         <div className="mb-32">
-          <div className="grid grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-3 max-[500px]:flex max-[500px]:flex-col gap-6 max-[500px]:gap-4 max-w-4xl mx-auto">
             {brandImages.map((item, index) => (
               <div key={index} className="group">
-                <div className="relative overflow-hidden aspect-[4/5] rounded-sm bg-white">
+                <div className="relative overflow-hidden aspect-[4/5] max-[500px]:aspect-[3/4] rounded-sm bg-white">
                   <img
                     src={item.image}
                     alt={item.alt}
@@ -40,7 +40,7 @@ export function CategorySection() {
 
         {/* Triangle Design with Values */}
         <div className="mb-0 flex justify-center">
-          <div className="grid grid-cols-3 gap-16 max-w-6xl mx-auto px-8">
+          <div className="grid grid-cols-3 max-[500px]:flex max-[500px]:flex-col gap-16 max-[500px]:gap-8 max-w-6xl mx-auto px-8 max-[500px]:px-4">
             {/* Quality Triangle */}
             <div className="flex flex-col items-center gap-4">
               <svg viewBox="0 0 120 104" className="w-full h-auto max-w-[240px]">

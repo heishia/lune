@@ -1,9 +1,10 @@
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { X, Minus, Plus, ShoppingBag } from "lucide-react";
 import { Button } from "./ui/button";
 import { CartItem } from "../types/cart";
-import { getProductById } from "../data/products";
+import { getProduct, Product } from "../utils/api";
 
 interface CartModalProps {
   isOpen: boolean;
@@ -22,8 +23,38 @@ export function CartModal({
   onRemoveItem,
   onCheckout,
 }: CartModalProps) {
+  const [products, setProducts] = useState<Map<number, Product>>(new Map());
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && cartItems.length > 0) {
+      const fetchProducts = async () => {
+        try {
+          setLoading(true);
+          const productMap = new Map<number, Product>();
+          for (const item of cartItems) {
+            if (!productMap.has(item.productId)) {
+              try {
+                const product = await getProduct(item.productId);
+                productMap.set(item.productId, product);
+              } catch (error) {
+                console.error(`Failed to fetch product ${item.productId}:`, error);
+              }
+            }
+          }
+          setProducts(productMap);
+        } catch (error) {
+          console.error("Failed to fetch products:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchProducts();
+    }
+  }, [isOpen, cartItems]);
+
   const total = cartItems.reduce((sum, item) => {
-    const product = getProductById(item.productId);
+    const product = products.get(item.productId);
     return sum + (product?.price || 0) * item.quantity;
   }, 0);
 
@@ -50,9 +81,12 @@ export function CartModal({
         ) : (
           <>
             <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-              {cartItems.map((item) => {
-                const product = getProductById(item.productId);
-                if (!product) return null;
+              {loading ? (
+                <div className="text-center py-8 text-brand-warm-taupe text-sm">로딩 중...</div>
+              ) : (
+                cartItems.map((item) => {
+                  const product = products.get(item.productId);
+                  if (!product) return null;
 
                 return (
                   <div
@@ -61,7 +95,7 @@ export function CartModal({
                   >
                     <div className="w-24 h-24 bg-brand-warm-taupe/10 rounded overflow-hidden flex-shrink-0">
                       <ImageWithFallback
-                        src={product.image}
+                        src={product.image_url}
                         alt={product.name}
                         className="w-full h-full object-cover"
                       />
@@ -114,8 +148,9 @@ export function CartModal({
                       </div>
                     </div>
                   </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
 
             <div className="border-t border-brand-warm-taupe/20 pt-4 space-y-4">

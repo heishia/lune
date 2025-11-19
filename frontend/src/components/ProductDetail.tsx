@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { Heart, ShoppingCart, ChevronLeft } from "lucide-react";
-import { Product, getProductById } from "../data/products";
+import { getProduct, Product } from "../utils/api";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
 import { projectId, publicAnonKey } from "../utils/supabase/info";
@@ -14,12 +14,36 @@ interface ProductDetailProps {
 }
 
 export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: ProductDetailProps) {
-  const product = getProductById(productId);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        const data = await getProduct(productId);
+        setProduct(data);
+        if (data.colors.length > 0) {
+          setSelectedColor(data.colors[0]);
+        }
+        if (data.sizes.length > 0) {
+          setSelectedSize(data.sizes[0]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch product:", error);
+        toast.error("상품 정보를 불러올 수 없습니다");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [productId]);
 
   // 찜 상태 확인
   useEffect(() => {
@@ -117,12 +141,14 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
     );
   }
 
-  // 첫 번째 색상과 사이즈를 기본값으로 설정
-  if (!selectedColor && product.colors.length > 0) {
-    setSelectedColor(product.colors[0]);
-  }
-  if (!selectedSize && product.sizes.length > 0) {
-    setSelectedSize(product.sizes[0]);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-brand-warm-taupe tracking-wider mb-4">로딩 중...</p>
+        </div>
+      </div>
+    );
   }
 
   const getColorHex = (color: string) => {
@@ -145,7 +171,7 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
     <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="bg-white border-b border-brand-warm-taupe/20 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="max-w-6xl mx-auto px-4 max-[500px]:px-3 py-6 max-[500px]:py-4">
           <button
             onClick={onBack}
             className="flex items-center gap-2 text-brand-terra-cotta hover:text-brand-warm-taupe transition-colors"
@@ -157,32 +183,32 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
       </div>
 
       {/* Product Detail */}
-      <div className="max-w-6xl mx-auto px-4 py-12">
-        <div className="grid md:grid-cols-2 gap-12">
+      <div className="max-w-6xl mx-auto px-4 max-[500px]:px-3 py-12 max-[500px]:py-8">
+        <div className="grid md:grid-cols-2 max-[500px]:flex max-[500px]:flex-col gap-12 max-[500px]:gap-8">
           {/* Product Image */}
           <div className="relative">
-            <div className="aspect-[3/4] bg-brand-warm-taupe/10 rounded-lg overflow-hidden">
+            <div className="aspect-[3/4] max-[500px]:aspect-[4/5] bg-brand-warm-taupe/10 rounded-lg overflow-hidden">
               <ImageWithFallback
-                src={product.image}
+                src={product.image_url}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
             </div>
 
             {/* Tags */}
-            <div className="absolute top-4 left-4 flex flex-col gap-2">
-              {product.isNew && (
-                <div className="bg-brand-terra-cotta text-brand-cream px-3 py-1 text-xs tracking-wider">
+            <div className="absolute top-4 left-4 max-[500px]:top-2 max-[500px]:left-2 flex flex-col gap-2 max-[500px]:gap-1">
+              {product.is_new && (
+                <div className="bg-brand-terra-cotta text-brand-cream px-3 py-1 max-[500px]:px-2 max-[500px]:py-0.5 text-xs max-[500px]:text-[10px] tracking-wider">
                   NEW
                 </div>
               )}
-              {product.isBest && (
-                <div className="bg-brand-warm-taupe text-brand-cream px-3 py-1 text-xs tracking-wider">
+              {product.is_best && (
+                <div className="bg-brand-warm-taupe text-brand-cream px-3 py-1 max-[500px]:px-2 max-[500px]:py-0.5 text-xs max-[500px]:text-[10px] tracking-wider">
                   BEST
                 </div>
               )}
-              {product.originalPrice && (
-                <div className="bg-brand-terra-cotta text-brand-cream px-3 py-1 text-xs tracking-wider">
+              {product.original_price && (
+                <div className="bg-brand-terra-cotta text-brand-cream px-3 py-1 max-[500px]:px-2 max-[500px]:py-0.5 text-xs max-[500px]:text-[10px] tracking-wider">
                   SALE
                 </div>
               )}
@@ -191,8 +217,8 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
 
           {/* Product Info */}
           <div className="flex flex-col">
-            <div className="mb-6">
-              <div className="flex gap-2 mb-3">
+            <div className="mb-6 max-[500px]:mb-4">
+              <div className="flex gap-2 mb-3 max-[500px]:mb-2 flex-wrap">
                 {product.category.map((cat, idx) => (
                   <span
                     key={idx}
@@ -202,46 +228,46 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
                   </span>
                 ))}
               </div>
-              <h1 className="text-2xl tracking-wider text-brand-terra-cotta mb-4">
+              <h1 className="text-2xl max-[500px]:text-xl tracking-wider text-brand-terra-cotta mb-4 max-[500px]:mb-3">
                 {product.name}
               </h1>
-              <p className="text-sm text-brand-warm-taupe leading-relaxed mb-6">
+              <p className="text-sm max-[500px]:text-xs text-brand-warm-taupe leading-relaxed mb-6 max-[500px]:mb-4">
                 {product.description}
               </p>
             </div>
 
             {/* Price */}
-            <div className="mb-8 pb-8 border-b border-brand-warm-taupe/20">
+            <div className="mb-8 max-[500px]:mb-6 pb-8 max-[500px]:pb-6 border-b border-brand-warm-taupe/20">
               <div className="flex items-center gap-3">
-                {product.originalPrice && (
+                {product.original_price && (
                   <span className="text-brand-warm-taupe/60 line-through">
-                    {product.originalPrice.toLocaleString()} won
+                    {product.original_price.toLocaleString()} won
                   </span>
                 )}
-                <span className="text-2xl text-brand-terra-cotta">
+                <span className="text-2xl max-[500px]:text-xl text-brand-terra-cotta">
                   {product.price.toLocaleString()} won
                 </span>
               </div>
-              {product.originalPrice && (
+              {product.original_price && (
                 <div className="mt-2">
-                  <span className="text-sm text-brand-terra-cotta">
-                    {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
+                  <span className="text-sm max-[500px]:text-xs text-brand-terra-cotta">
+                    {Math.round((1 - product.price / product.original_price) * 100)}% OFF
                   </span>
                 </div>
               )}
             </div>
 
             {/* Color Selection */}
-            <div className="mb-6">
-              <h3 className="text-xs tracking-wider text-brand-terra-cotta mb-3">
+            <div className="mb-6 max-[500px]:mb-4">
+              <h3 className="text-xs tracking-wider text-brand-terra-cotta mb-3 max-[500px]:mb-2">
                 COLOR
               </h3>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 {product.colors.map((color) => (
                   <button
                     key={color}
                     onClick={() => setSelectedColor(color)}
-                    className={`w-10 h-10 rounded-full border-2 transition-all ${
+                    className={`w-10 h-10 max-[500px]:w-12 max-[500px]:h-12 rounded-full border-2 transition-all ${
                       selectedColor === color
                         ? "border-brand-terra-cotta scale-110"
                         : "border-brand-warm-taupe/30 hover:border-brand-warm-taupe"
@@ -255,8 +281,8 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
             </div>
 
             {/* Size Selection */}
-            <div className="mb-6">
-              <h3 className="text-xs tracking-wider text-brand-terra-cotta mb-3">
+            <div className="mb-6 max-[500px]:mb-4">
+              <h3 className="text-xs tracking-wider text-brand-terra-cotta mb-3 max-[500px]:mb-2">
                 SIZE
               </h3>
               <div className="flex gap-2 flex-wrap">
@@ -264,7 +290,7 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
-                    className={`px-4 py-2 border text-xs tracking-wider transition-all ${
+                    className={`px-4 py-2 max-[500px]:px-5 max-[500px]:py-3 border text-xs tracking-wider transition-all ${
                       selectedSize === size
                         ? "border-brand-terra-cotta bg-brand-terra-cotta text-brand-cream"
                         : "border-brand-warm-taupe/30 text-brand-warm-taupe hover:border-brand-terra-cotta"
@@ -277,21 +303,21 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
             </div>
 
             {/* Quantity */}
-            <div className="mb-8">
-              <h3 className="text-xs tracking-wider text-brand-terra-cotta mb-3">
+            <div className="mb-8 max-[500px]:mb-6">
+              <h3 className="text-xs tracking-wider text-brand-terra-cotta mb-3 max-[500px]:mb-2">
                 QUANTITY
               </h3>
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-8 h-8 border border-brand-warm-taupe/30 text-brand-warm-taupe hover:border-brand-terra-cotta hover:text-brand-terra-cotta transition-colors"
+                  className="w-8 h-8 max-[500px]:w-10 max-[500px]:h-10 border border-brand-warm-taupe/30 text-brand-warm-taupe hover:border-brand-terra-cotta hover:text-brand-terra-cotta transition-colors"
                 >
                   -
                 </button>
-                <span className="w-12 text-center text-brand-terra-cotta">{quantity}</span>
+                <span className="w-12 max-[500px]:w-14 text-center text-brand-terra-cotta">{quantity}</span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
-                  className="w-8 h-8 border border-brand-warm-taupe/30 text-brand-warm-taupe hover:border-brand-terra-cotta hover:text-brand-terra-cotta transition-colors"
+                  className="w-8 h-8 max-[500px]:w-10 max-[500px]:h-10 border border-brand-warm-taupe/30 text-brand-warm-taupe hover:border-brand-terra-cotta hover:text-brand-terra-cotta transition-colors"
                 >
                   +
                 </button>
@@ -299,7 +325,7 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 mt-auto">
+            <div className="flex gap-3 max-[500px]:flex-col mt-auto">
               <button 
                 onClick={() => {
                   if (!selectedColor || !selectedSize) {
@@ -309,7 +335,7 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
                   onAddToCart(product.id, quantity, selectedColor, selectedSize);
                   toast.success("장바구니에 추가되었습니다!");
                 }}
-                className="flex-1 bg-brand-terra-cotta text-brand-cream py-4 hover:bg-brand-warm-taupe transition-colors flex items-center justify-center gap-2 tracking-wider text-sm"
+                className="flex-1 bg-brand-terra-cotta text-brand-cream py-4 max-[500px]:py-5 hover:bg-brand-warm-taupe transition-colors flex items-center justify-center gap-2 tracking-wider text-sm max-[500px]:text-base"
               >
                 <ShoppingCart className="w-5 h-5" />
                 ADD TO CART
@@ -317,7 +343,7 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
               <button
                 onClick={toggleFavorite}
                 disabled={favoriteLoading}
-                className={`w-14 h-14 border transition-colors flex items-center justify-center ${
+                className={`w-14 h-14 max-[500px]:w-full max-[500px]:h-12 border transition-colors flex items-center justify-center ${
                   isFavorite
                     ? "border-brand-terra-cotta bg-brand-terra-cotta text-white"
                     : "border-brand-warm-taupe/30 text-brand-terra-cotta hover:bg-brand-warm-taupe/10"
@@ -332,12 +358,12 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
             </div>
 
             {/* Total Price */}
-            <div className="mt-6 pt-6 border-t border-brand-warm-taupe/20">
+            <div className="mt-6 max-[500px]:mt-4 pt-6 max-[500px]:pt-4 border-t border-brand-warm-taupe/20">
               <div className="flex justify-between items-center">
                 <span className="text-sm tracking-wider text-brand-warm-taupe">
                   TOTAL
                 </span>
-                <span className="text-xl text-brand-terra-cotta">
+                <span className="text-xl max-[500px]:text-lg text-brand-terra-cotta">
                   {(product.price * quantity).toLocaleString()} won
                 </span>
               </div>

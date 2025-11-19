@@ -6,6 +6,14 @@ import { toast } from "sonner";
 import { Instagram, Save, Check, X } from "lucide-react";
 import { projectId, publicAnonKey } from "../utils/supabase/info";
 
+// 개발 환경에서는 로컬 백엔드 사용, 프로덕션에서는 Supabase Edge Function 사용
+const getApiUrl = (endpoint: string) => {
+  const baseUrl = import.meta.env.DEV
+    ? 'http://localhost:8000'
+    : `https://${projectId}.supabase.co/functions/v1/make-server-8ed17d84`;
+  return `${baseUrl}${endpoint}`;
+};
+
 export function InstagramSettings() {
   const [instagramToken, setInstagramToken] = useState("");
   const [featuredImageUrl, setFeaturedImageUrl] = useState("");
@@ -21,7 +29,7 @@ export function InstagramSettings() {
   const fetchSettings = async () => {
     try {
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-8ed17d84/instagram/settings`,
+        getApiUrl('/instagram/settings'),
         {
           headers: {
             Authorization: `Bearer ${publicAnonKey}`,
@@ -53,7 +61,7 @@ export function InstagramSettings() {
     try {
       setLoading(true);
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-8ed17d84/instagram/settings`,
+        getApiUrl('/instagram/settings'),
         {
           method: "POST",
           headers: {
@@ -91,7 +99,7 @@ export function InstagramSettings() {
     try {
       setLoading(true);
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-8ed17d84/instagram/featured-image`,
+        getApiUrl('/instagram/featured-image'),
         {
           method: "POST",
           headers: {

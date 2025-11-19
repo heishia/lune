@@ -10,24 +10,35 @@ INSTAGRAM_SETTINGS_ID = "00000000-0000-0000-0000-000000000001"
 
 def get_instagram_settings(db: Session) -> models.InstagramSettings:
     """Instagram 설정을 조회합니다. 없으면 생성합니다."""
-    settings = db.query(models.InstagramSettings).filter(
-        models.InstagramSettings.id == INSTAGRAM_SETTINGS_ID
-    ).first()
-    
-    if not settings:
+    try:
+        settings = db.query(models.InstagramSettings).filter(
+            models.InstagramSettings.id == INSTAGRAM_SETTINGS_ID
+        ).first()
+        
+        if not settings:
+            from datetime import datetime
+            settings = models.InstagramSettings(
+                id=INSTAGRAM_SETTINGS_ID,
+                access_token="",
+                featured_image_url=None,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
+            )
+            db.add(settings)
+            db.commit()
+            db.refresh(settings)
+        
+        return settings
+    except Exception as e:
+        # 테이블이 없거나 다른 오류 발생 시 기본 설정 반환
         from datetime import datetime
-        settings = models.InstagramSettings(
+        return models.InstagramSettings(
             id=INSTAGRAM_SETTINGS_ID,
             access_token="",
             featured_image_url=None,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
         )
-        db.add(settings)
-        db.commit()
-        db.refresh(settings)
-    
-    return settings
 
 
 def update_instagram_settings(

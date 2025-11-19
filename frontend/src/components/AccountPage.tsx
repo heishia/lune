@@ -6,7 +6,7 @@ import { Label } from "./ui/label";
 import { toast } from "sonner";
 import logo from "figma:asset/e95f335bacb8348ed117f587f5d360e078bf26b6.png";
 import { projectId, publicAnonKey } from "../utils/supabase/info";
-import { getProductById } from "../data/products";
+import { getProduct, Product } from "../utils/api";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { EventBanner, EventBannerData } from "./EventBanner";
 
@@ -100,6 +100,7 @@ export function AccountPage({
   // 찜한 상품 목록
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
   const [favoritesLoading, setFavoritesLoading] = useState(false);
+  const [favoriteProducts, setFavoriteProducts] = useState<Map<number, Product>>(new Map());
   
   // 결제수단 관리 (임시 데이터 - 실제로는 백엔드에서 가져와야 함)
   const [savedCards, setSavedCards] = useState(propSavedCards);
@@ -260,6 +261,33 @@ export function AccountPage({
         });
     }
   }, [accessToken]);
+
+  // 찜한 상품 정보 가져오기
+  useEffect(() => {
+    const fetchFavoriteProducts = async () => {
+      if (favoriteIds.length === 0) {
+        setFavoriteProducts(new Map());
+        return;
+      }
+
+      try {
+        const productMap = new Map<number, Product>();
+        for (const productId of favoriteIds) {
+          try {
+            const product = await getProduct(productId);
+            productMap.set(productId, product);
+          } catch (error) {
+            console.error(`Failed to fetch product ${productId}:`, error);
+          }
+        }
+        setFavoriteProducts(productMap);
+      } catch (error) {
+        console.error("Failed to fetch favorite products:", error);
+      }
+    };
+
+    fetchFavoriteProducts();
+  }, [favoriteIds]);
 
   // 이벤트 배너 상태
   const [showEventBanner, setShowEventBanner] = useState(true);
@@ -600,8 +628,12 @@ export function AccountPage({
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {favoriteIds.map((productId) => {
-                      const product = getProductById(productId);
-                      if (!product) return null;
+                      const product = favoriteProducts.get(productId);
+                      if (!product) return (
+                        <div key={productId} className="border border-brand-warm-taupe/20 rounded-md p-4">
+                          <div className="text-center text-brand-warm-taupe text-sm">로딩 중...</div>
+                        </div>
+                      );
                       return (
                         <div
                           key={productId}
@@ -611,7 +643,7 @@ export function AccountPage({
                           <div className="flex gap-4">
                             {/* 상품 이미지 */}
                             <ImageWithFallback
-                              src={product.image}
+                              src={product.image_url}
                               alt={product.name}
                               className="w-24 h-24 object-cover rounded-sm"
                             />

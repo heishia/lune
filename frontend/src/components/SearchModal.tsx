@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { products, Product } from "../data/products";
+import { getProducts, Product } from "../utils/api";
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -14,6 +14,25 @@ interface SearchModalProps {
 export function SearchModal({ isOpen, onClose, onProductClick }: SearchModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      const fetchAllProducts = async () => {
+        try {
+          setLoading(true);
+          const response = await getProducts({ limit: 1000 });
+          setAllProducts(response.products);
+        } catch (error) {
+          console.error("Failed to fetch products:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchAllProducts();
+    }
+  }, [isOpen]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -23,9 +42,9 @@ export function SearchModal({ isOpen, onClose, onProductClick }: SearchModalProp
       return;
     }
 
-    const results = products.filter(product =>
+    const results = allProducts.filter(product =>
       product.name.toLowerCase().includes(query.toLowerCase()) ||
-      product.description.toLowerCase().includes(query.toLowerCase()) ||
+      (product.description && product.description.toLowerCase().includes(query.toLowerCase())) ||
       product.category.some(cat => cat.toLowerCase().includes(query.toLowerCase()))
     );
     
@@ -64,7 +83,11 @@ export function SearchModal({ isOpen, onClose, onProductClick }: SearchModalProp
         </div>
 
         <div className="overflow-y-auto max-h-[50vh]">
-          {searchQuery === "" ? (
+          {loading ? (
+            <div className="text-center py-8 text-brand-warm-taupe text-sm">
+              로딩 중...
+            </div>
+          ) : searchQuery === "" ? (
             <div className="text-center py-8 text-brand-warm-taupe text-sm">
               검색어를 입력하세요
             </div>
@@ -82,7 +105,7 @@ export function SearchModal({ isOpen, onClose, onProductClick }: SearchModalProp
                 >
                   <div className="w-16 h-16 bg-brand-warm-taupe/10 rounded overflow-hidden flex-shrink-0">
                     <ImageWithFallback
-                      src={product.image}
+                      src={product.image_url}
                       alt={product.name}
                       className="w-full h-full object-cover"
                     />
@@ -92,9 +115,9 @@ export function SearchModal({ isOpen, onClose, onProductClick }: SearchModalProp
                       {product.name}
                     </h3>
                     <div className="flex items-center gap-2">
-                      {product.originalPrice && (
+                      {product.original_price && (
                         <span className="text-xs text-brand-warm-taupe/60 line-through">
-                          {product.originalPrice.toLocaleString()}원
+                          {product.original_price.toLocaleString()}원
                         </span>
                       )}
                       <span className="text-sm text-brand-terra-cotta">

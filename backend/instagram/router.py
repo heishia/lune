@@ -78,15 +78,15 @@ def update_featured_image(
 @router.get("/media", response_model=schemas.InstagramMediaResponse)
 async def get_media(db: Session = Depends(get_db)) -> schemas.InstagramMediaResponse:
     """Instagram 미디어 목록을 조회합니다."""
-    instagram_settings = service.get_instagram_settings(db)
-    
-    if not instagram_settings.access_token:
-        return schemas.InstagramMediaResponse(
-            featured_image_url=instagram_settings.featured_image_url,
-            media=[],
-        )
-    
     try:
+        instagram_settings = service.get_instagram_settings(db)
+        
+        if not instagram_settings.access_token:
+            return schemas.InstagramMediaResponse(
+                featured_image_url=instagram_settings.featured_image_url,
+                media=[],
+            )
+        
         media_data = await service.get_instagram_media(instagram_settings.access_token)
         
         # 미디어 데이터를 응답 형식으로 변환
@@ -107,10 +107,10 @@ async def get_media(db: Session = Depends(get_db)) -> schemas.InstagramMediaResp
             featured_image_url=instagram_settings.featured_image_url,
             media=media_items,
         )
-    except Exception:
-        # 오류 발생 시 빈 응답 반환
+    except Exception as e:
+        # 오류 발생 시 빈 응답 반환 (로그는 main.py의 미들웨어에서 처리)
         return schemas.InstagramMediaResponse(
-            featured_image_url=instagram_settings.featured_image_url,
+            featured_image_url=None,
             media=[],
         )
 

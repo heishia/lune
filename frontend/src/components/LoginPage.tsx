@@ -17,7 +17,7 @@ export function LoginPage({ onLogin, onBack, onSignupClick, onAdminLogin }: Logi
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
@@ -25,26 +25,23 @@ export function LoginPage({ onLogin, onBack, onSignupClick, onAdminLogin }: Logi
       return;
     }
 
-    // 관리자 로그인 체크
-    if (email === "admin" && password === "nfhD8XvPrtKrebMG") {
-      if (onAdminLogin) {
+    try {
+      const { login } = await import("../utils/api");
+      const response = await login({ email, password });
+      
+      // 관리자 여부 확인
+      if (response.user.is_admin && onAdminLogin) {
         onAdminLogin();
         toast.success("관리자로 로그인되었습니다!");
         return;
       }
-    }
-
-    // 테스트 계정 체크
-    if (email === "user1" && password === "user123") {
-      onLogin(email, "testToken");
+      
+      onLogin(response.user.email, response.token);
       toast.success("로그인 되었습니다!");
       onBack();
-      return;
+    } catch (error: any) {
+      toast.error(error.message || "로그인에 실패했습니다");
     }
-
-    onLogin(email, "testToken");
-    toast.success("로그인 되었습니다!");
-    onBack();
   };
 
   return (

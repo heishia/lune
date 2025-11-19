@@ -379,14 +379,41 @@ FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
 -- ==========================================
--- 샘플 데이터 삽입 (테스트용)
+-- 15. Kakao_Settings (카카오톡 설정) 테이블
 -- ==========================================
+CREATE TABLE kakao_settings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  access_token TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
--- 테스트 사용자
-INSERT INTO users (email, name, password_hash, phone, marketing_agreed) VALUES
-('test@lune.com', '테스트 사용자', '$2b$10$abcdefghijklmnopqrstuvwxyz123456', '01012345678', true);
+CREATE TRIGGER update_kakao_settings_updated_at
+BEFORE UPDATE ON kakao_settings
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
 
--- 상품 샘플 데이터는 기존 products.ts의 데이터를 마이그레이션할 것
+-- 카카오톡 설정은 단일 레코드만 유지 (id가 항상 동일한 값)
+-- 초기 레코드는 애플리케이션에서 자동 생성되므로 여기서는 생성하지 않음
+
+-- ==========================================
+-- 16. Instagram_Settings (Instagram 설정) 테이블
+-- ==========================================
+CREATE TABLE instagram_settings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  access_token TEXT NOT NULL,
+  featured_image_url TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TRIGGER update_instagram_settings_updated_at
+BEFORE UPDATE ON instagram_settings
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
+
+-- Instagram 설정은 단일 레코드만 유지 (id가 항상 동일한 값)
+-- 초기 레코드는 애플리케이션에서 자동 생성되므로 여기서는 생성하지 않음
 
 -- ==========================================
 -- 뷰 (View) 생성
