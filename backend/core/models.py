@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -22,9 +22,13 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     marketing_agreed: Mapped[bool] = mapped_column(Boolean, default=False)
+    points: Mapped[int] = mapped_column(Integer, default=0)
 
     orders: Mapped[List["Order"]] = relationship(back_populates="user")
+    user_coupons: Mapped[List["UserCoupon"]] = relationship(back_populates="user")
+    point_history: Mapped[List["UserPoints"]] = relationship(back_populates="user")
 
 
 class Product(Base):
@@ -128,6 +132,82 @@ class InstagramSettings(Base):
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
     access_token: Mapped[str] = mapped_column(Text, nullable=False)
     featured_image_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class Banner(Base):
+    __tablename__ = "banners"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    banner_image: Mapped[str] = mapped_column(Text, nullable=False)
+    content_blocks: Mapped[Any] = mapped_column(JSONB, default=list)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    display_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class Coupon(Base):
+    __tablename__ = "coupons"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
+    code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    discount_type: Mapped[str] = mapped_column(String(20), nullable=False)  # percentage, fixed_amount
+    discount_value: Mapped[int] = mapped_column(Integer, nullable=False)
+    min_purchase_amount: Mapped[int] = mapped_column(Integer, default=0)
+    max_discount_amount: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    valid_from: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    valid_until: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    usage_limit: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    usage_count: Mapped[int] = mapped_column(Integer, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user_coupons: Mapped[List["UserCoupon"]] = relationship(back_populates="coupon")
+
+
+class UserCoupon(Base):
+    __tablename__ = "user_coupons"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
+    user_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False)
+    coupon_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("coupons.id"), nullable=False)
+    is_used: Mapped[bool] = mapped_column(Boolean, default=False)
+    used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    order_id: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("orders.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user: Mapped["User"] = relationship(back_populates="user_coupons")
+    coupon: Mapped["Coupon"] = relationship(back_populates="user_coupons")
+
+
+class UserPoints(Base):
+    __tablename__ = "user_points"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
+    user_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False)
+    points: Mapped[int] = mapped_column(Integer, nullable=False)
+    reason: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user: Mapped["User"] = relationship(back_populates="point_history")
+
+
+class Content(Base):
+    __tablename__ = "contents"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(50), nullable=False, default="product")
+    reference_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    blocks: Mapped[Any] = mapped_column(JSONB, default=list)
+    thumbnail_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_published: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_by: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

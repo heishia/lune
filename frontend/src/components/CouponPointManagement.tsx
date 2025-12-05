@@ -1,41 +1,42 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Search, Gift, Coins } from "lucide-react";
+import { Search, Gift, Coins, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { 
+  searchUsers, 
+  issuePoints, 
+  getPointHistory,
+  getCoupons,
+  createCoupon,
+  issueCouponToUser,
+  type AdminUser,
+  type PointHistory as ApiPointHistory,
+  type Coupon as ApiCoupon,
+} from "../utils/api";
 
 interface User {
   id: string;
   name: string;
   email: string;
   points: number;
-  coupons: Coupon[];
-}
-
-interface Coupon {
-  id: string;
-  code: string;
-  name: string;
-  discountType: "percent" | "fixed";
-  discountValue: number;
-  expiryDate: string;
-  isUsed: boolean;
 }
 
 interface CouponHistory {
   id: string;
+  couponId: string;
+  couponName: string;
   userId: string;
   userName: string;
-  couponName: string;
   issuedDate: string;
 }
 
-interface PointHistory {
+interface PointHistoryItem {
   id: string;
   userId: string;
   userName: string;
@@ -50,51 +51,25 @@ export function CouponPointManagement() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
   const [isPointDialogOpen, setIsPointDialogOpen] = useState(false);
+  const [isNewCouponDialogOpen, setIsNewCouponDialogOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // 쿠폰 발행 내역
-  const [couponHistory, setCouponHistory] = useState<CouponHistory[]>([
-    {
-      id: "1",
-      userId: "user1",
-      userName: "김루네",
-      couponName: "신규가입 5,000원 할인",
-      issuedDate: "2024-11-15",
-    },
-    {
-      id: "2",
-      userId: "user2",
-      userName: "박루네",
-      couponName: "블랙프라이데이 10% 할인",
-      issuedDate: "2024-11-18",
-    },
-  ]);
+  // 쿠폰 목록
+  const [coupons, setCoupons] = useState<ApiCoupon[]>([]);
+  const [selectedCouponId, setSelectedCouponId] = useState<string>("");
 
   // 포인트 지급 내역
-  const [pointHistory, setPointHistory] = useState<PointHistory[]>([
-    {
-      id: "1",
-      userId: "user1",
-      userName: "김루네",
-      points: 1000,
-      reason: "리뷰 작성",
-      issuedDate: "2024-11-16",
-    },
-    {
-      id: "2",
-      userId: "user2",
-      userName: "박루네",
-      points: 500,
-      reason: "이벤트 참여",
-      issuedDate: "2024-11-17",
-    },
-  ]);
+  const [pointHistory, setPointHistory] = useState<PointHistoryItem[]>([]);
 
-  // 쿠폰 폼 데이터
-  const [couponFormData, setCouponFormData] = useState({
+  // 새 쿠폰 생성 폼 데이터
+  const [newCouponFormData, setNewCouponFormData] = useState({
+    code: "",
     name: "",
-    discountType: "percent" as "percent" | "fixed",
+    discountType: "percentage" as "percentage" | "fixed_amount",
     discountValue: 0,
-    expiryDate: "",
+    validFrom: new Date().toISOString().split("T")[0],
+    validUntil: "",
   });
 
   // 포인트 폼 데이터
@@ -103,90 +78,124 @@ export function CouponPointManagement() {
     reason: "",
   });
 
-  // 임시 사용자 데이터
-  const mockUsers: User[] = [
-    {
-      id: "user1",
-      name: "김루네",
-      email: "lune1@example.com",
-      points: 2500,
-      coupons: [
-        {
-          id: "c1",
-          code: "WELCOME5000",
-          name: "신규가입 5,000원 할인",
-          discountType: "fixed",
-          discountValue: 5000,
-          expiryDate: "2024-12-31",
-          isUsed: false,
-        },
-      ],
-    },
-    {
-      id: "user2",
-      name: "박루네",
-      email: "lune2@example.com",
-      points: 1500,
-      coupons: [],
-    },
-    {
-      id: "user3",
-      name: "이루네",
-      email: "lune3@example.com",
-      points: 3000,
-      coupons: [],
-    },
-  ];
+  // 쿠폰 목록 로드
+  const fetchCoupons = async () => {
+    try {
+      const response = await getCoupons();
+      setCoupons(response.coupons);
+    } catch (error) {
+      console.error("Error fetching coupons:", error);
+    }
+  };
 
-  const handleSearch = () => {
+  // 포인트 내역 로드
+  const fetchPointHistory = async () => {
+    try {
+      const response = await getPointHistory();
+      // 실제로는 userName도 가져와야 하지만 현재 API에서는 user_id만 반환
+      const history: PointHistoryItem[] = response.history.map((h) => ({
+        id: h.id,
+        userId: h.user_id,
+        userName: h.user_id.substring(0, 8) + "...", // 임시로 ID 일부 표시
+        points: h.points,
+        reason: h.reason,
+        issuedDate: h.created_at.split("T")[0],
+      }));
+      setPointHistory(history);
+    } catch (error) {
+      console.error("Error fetching point history:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCoupons();
+    fetchPointHistory();
+  }, []);
+
+  const handleSearch = async () => {
     if (!searchQuery.trim()) {
       toast.error("검색어를 입력하세요");
       return;
     }
 
-    const results = mockUsers.filter(
-      (user) =>
-        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    try {
+      setSearching(true);
+      const response = await searchUsers(searchQuery);
+      const results: User[] = response.users.map((u) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        points: u.points,
+      }));
+      setSearchResults(results);
 
-    setSearchResults(results);
-
-    if (results.length === 0) {
-      toast.error("검색 결과가 없습니다");
+      if (results.length === 0) {
+        toast.error("검색 결과가 없습니다");
+      }
+    } catch (error) {
+      console.error("Error searching users:", error);
+      toast.error("사용자 검색에 실패했습니다");
+    } finally {
+      setSearching(false);
     }
   };
 
-  const handleIssueCoupon = () => {
-    if (!selectedUser) return;
-
-    if (!couponFormData.name || !couponFormData.expiryDate || couponFormData.discountValue <= 0) {
+  const handleCreateCoupon = async () => {
+    if (!newCouponFormData.code || !newCouponFormData.name || !newCouponFormData.validUntil || newCouponFormData.discountValue <= 0) {
       toast.error("모든 정보를 입력해주세요");
       return;
     }
 
-    const newHistory: CouponHistory = {
-      id: Date.now().toString(),
-      userId: selectedUser.id,
-      userName: selectedUser.name,
-      couponName: couponFormData.name,
-      issuedDate: new Date().toISOString().split("T")[0],
-    };
-
-    setCouponHistory([newHistory, ...couponHistory]);
-    toast.success(`${selectedUser.name}님에게 쿠폰이 발행되었습니다`);
-
-    setIsCouponDialogOpen(false);
-    setCouponFormData({
-      name: "",
-      discountType: "percent",
-      discountValue: 0,
-      expiryDate: "",
-    });
+    try {
+      setSaving(true);
+      await createCoupon({
+        code: newCouponFormData.code,
+        name: newCouponFormData.name,
+        discount_type: newCouponFormData.discountType,
+        discount_value: newCouponFormData.discountValue,
+        valid_from: new Date(newCouponFormData.validFrom).toISOString(),
+        valid_until: new Date(newCouponFormData.validUntil).toISOString(),
+      });
+      toast.success("쿠폰이 생성되었습니다");
+      setIsNewCouponDialogOpen(false);
+      setNewCouponFormData({
+        code: "",
+        name: "",
+        discountType: "percentage",
+        discountValue: 0,
+        validFrom: new Date().toISOString().split("T")[0],
+        validUntil: "",
+      });
+      fetchCoupons();
+    } catch (error: any) {
+      console.error("Error creating coupon:", error);
+      toast.error(error.message || "쿠폰 생성에 실패했습니다");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleIssuePoints = () => {
+  const handleIssueCoupon = async () => {
+    if (!selectedUser || !selectedCouponId) {
+      toast.error("쿠폰을 선택해주세요");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await issueCouponToUser(selectedCouponId, selectedUser.id);
+      toast.success(`${selectedUser.name}님에게 쿠폰이 발행되었습니다`);
+      setIsCouponDialogOpen(false);
+      setSelectedCouponId("");
+    } catch (error: any) {
+      console.error("Error issuing coupon:", error);
+      toast.error(error.message || "쿠폰 발행에 실패했습니다");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleIssuePoints = async () => {
     if (!selectedUser) return;
 
     if (pointFormData.points <= 0 || !pointFormData.reason) {
@@ -194,23 +203,29 @@ export function CouponPointManagement() {
       return;
     }
 
-    const newHistory: PointHistory = {
-      id: Date.now().toString(),
-      userId: selectedUser.id,
-      userName: selectedUser.name,
-      points: pointFormData.points,
-      reason: pointFormData.reason,
-      issuedDate: new Date().toISOString().split("T")[0],
-    };
-
-    setPointHistory([newHistory, ...pointHistory]);
-    toast.success(`${selectedUser.name}님에게 ${pointFormData.points}P가 지급되었습니다`);
-
-    setIsPointDialogOpen(false);
-    setPointFormData({
-      points: 0,
-      reason: "",
-    });
+    try {
+      setSaving(true);
+      await issuePoints(selectedUser.id, {
+        points: pointFormData.points,
+        reason: pointFormData.reason,
+      });
+      toast.success(`${selectedUser.name}님에게 ${pointFormData.points}P가 지급되었습니다`);
+      setIsPointDialogOpen(false);
+      setPointFormData({
+        points: 0,
+        reason: "",
+      });
+      fetchPointHistory();
+      // 사용자 목록도 새로고침
+      if (searchQuery) {
+        handleSearch();
+      }
+    } catch (error: any) {
+      console.error("Error issuing points:", error);
+      toast.error(error.message || "포인트 지급에 실패했습니다");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -219,7 +234,17 @@ export function CouponPointManagement() {
 
       {/* 사용자 검색 */}
       <div className="bg-white rounded-lg shadow p-6 space-y-4">
-        <h3 className="text-brand-terra-cotta">사용자 검색</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-brand-terra-cotta">사용자 검색</h3>
+          <Button
+            onClick={() => setIsNewCouponDialogOpen(true)}
+            variant="outline"
+            className="border-brand-terra-cotta text-brand-terra-cotta hover:bg-brand-terra-cotta hover:text-white"
+          >
+            <Gift className="w-4 h-4 mr-2" />
+            새 쿠폰 만들기
+          </Button>
+        </div>
         <div className="flex gap-2">
           <Input
             value={searchQuery}
@@ -230,9 +255,10 @@ export function CouponPointManagement() {
           />
           <Button
             onClick={handleSearch}
+            disabled={searching}
             className="bg-brand-terra-cotta text-white hover:bg-brand-warm-taupe"
           >
-            <Search className="w-4 h-4 mr-2" />
+            {searching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
             검색
           </Button>
         </div>
@@ -247,20 +273,18 @@ export function CouponPointManagement() {
                   <TableHead>이름</TableHead>
                   <TableHead>이메일</TableHead>
                   <TableHead className="text-right">포인트</TableHead>
-                  <TableHead className="text-center">쿠폰 수</TableHead>
                   <TableHead className="text-right">액션</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {searchResults.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell className="font-mono text-xs">{user.id}</TableCell>
+                    <TableCell className="font-mono text-xs">{user.id.substring(0, 8)}...</TableCell>
                     <TableCell>{user.name}</TableCell>
                     <TableCell className="text-sm text-brand-warm-taupe">{user.email}</TableCell>
                     <TableCell className="text-right text-brand-terra-cotta">
                       {user.points.toLocaleString()}P
                     </TableCell>
-                    <TableCell className="text-center">{user.coupons.length}개</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button
@@ -300,56 +324,75 @@ export function CouponPointManagement() {
       {/* 발행 내역 */}
       <Tabs defaultValue="coupons" className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="coupons">쿠폰 발행 내역</TabsTrigger>
+          <TabsTrigger value="coupons">쿠폰 목록</TabsTrigger>
           <TabsTrigger value="points">포인트 지급 내역</TabsTrigger>
         </TabsList>
 
         <TabsContent value="coupons" className="mt-4">
           <div className="bg-white rounded-lg shadow overflow-hidden">
+            {coupons.length === 0 ? (
+              <div className="text-center py-12 text-brand-warm-taupe">
+                생성된 쿠폰이 없습니다
+              </div>
+            ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>사용자 ID</TableHead>
-                  <TableHead>이름</TableHead>
+                  <TableHead>쿠폰 코드</TableHead>
                   <TableHead>쿠폰명</TableHead>
-                  <TableHead>발행일</TableHead>
+                  <TableHead>할인</TableHead>
+                  <TableHead>유효기간</TableHead>
+                  <TableHead className="text-center">상태</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {couponHistory.map((record) => (
-                  <TableRow key={record.id}>
-                    <TableCell className="font-mono text-xs">{record.userId}</TableCell>
-                    <TableCell>{record.userName}</TableCell>
-                    <TableCell className="text-brand-terra-cotta">{record.couponName}</TableCell>
+                {coupons.map((coupon) => (
+                  <TableRow key={coupon.id}>
+                    <TableCell className="font-mono text-xs">{coupon.code}</TableCell>
+                    <TableCell>{coupon.name}</TableCell>
+                    <TableCell className="text-brand-terra-cotta">
+                      {coupon.discount_type === 'percentage' 
+                        ? `${coupon.discount_value}%` 
+                        : `${coupon.discount_value.toLocaleString()}원`}
+                    </TableCell>
                     <TableCell className="text-sm text-brand-warm-taupe">
-                      {record.issuedDate}
+                      {coupon.valid_from.split("T")[0]} ~ {coupon.valid_until.split("T")[0]}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className={`px-2 py-1 rounded text-xs ${coupon.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                        {coupon.is_active ? '활성' : '비활성'}
+                      </span>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            )}
           </div>
         </TabsContent>
 
         <TabsContent value="points" className="mt-4">
           <div className="bg-white rounded-lg shadow overflow-hidden">
+            {pointHistory.length === 0 ? (
+              <div className="text-center py-12 text-brand-warm-taupe">
+                포인트 지급 내역이 없습니다
+              </div>
+            ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>사용자 ID</TableHead>
-                  <TableHead>이름</TableHead>
                   <TableHead className="text-right">포인트</TableHead>
                   <TableHead>사유</TableHead>
-                  <TableHead>발행일</TableHead>
+                  <TableHead>지급일</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {pointHistory.map((record) => (
                   <TableRow key={record.id}>
-                    <TableCell className="font-mono text-xs">{record.userId}</TableCell>
-                    <TableCell>{record.userName}</TableCell>
+                    <TableCell className="font-mono text-xs">{record.userId.substring(0, 8)}...</TableCell>
                     <TableCell className="text-right text-brand-terra-cotta">
-                      +{record.points.toLocaleString()}P
+                      {record.points > 0 ? '+' : ''}{record.points.toLocaleString()}P
                     </TableCell>
                     <TableCell className="text-sm">{record.reason}</TableCell>
                     <TableCell className="text-sm text-brand-warm-taupe">
@@ -359,6 +402,7 @@ export function CouponPointManagement() {
                 ))}
               </TableBody>
             </Table>
+            )}
           </div>
         </TabsContent>
       </Tabs>
@@ -375,50 +419,121 @@ export function CouponPointManagement() {
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="couponName" className="text-brand-terra-cotta">
-                쿠폰명 *
-              </Label>
-              <Input
-                id="couponName"
-                value={couponFormData.name}
-                onChange={(e) =>
-                  setCouponFormData({ ...couponFormData, name: e.target.value })
-                }
-                placeholder="예: 신규가입 5,000원 할인"
+              <Label className="text-brand-terra-cotta">발행할 쿠폰 선택 *</Label>
+              {coupons.length === 0 ? (
+                <div className="text-sm text-brand-warm-taupe p-4 border border-dashed border-brand-warm-taupe/30 rounded text-center">
+                  발행 가능한 쿠폰이 없습니다. 먼저 쿠폰을 생성해주세요.
+                </div>
+              ) : (
+                <Select value={selectedCouponId} onValueChange={setSelectedCouponId}>
+                  <SelectTrigger className="border-brand-warm-taupe/30">
+                    <SelectValue placeholder="쿠폰을 선택하세요" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {coupons.filter(c => c.is_active).map((coupon) => (
+                      <SelectItem key={coupon.id} value={coupon.id}>
+                        {coupon.name} ({coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `${coupon.discount_value.toLocaleString()}원`})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            <div className="flex gap-2 justify-end pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setIsCouponDialogOpen(false)}
                 className="border-brand-warm-taupe/30"
-              />
+                disabled={saving}
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleIssueCoupon}
+                disabled={saving || !selectedCouponId}
+                className="bg-brand-terra-cotta text-white hover:bg-brand-warm-taupe"
+              >
+                {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                발행
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 새 쿠폰 생성 다이얼로그 */}
+      <Dialog open={isNewCouponDialogOpen} onOpenChange={setIsNewCouponDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-brand-terra-cotta">새 쿠폰 생성</DialogTitle>
+            <DialogDescription>
+              새로운 쿠폰을 생성합니다
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="couponCode" className="text-brand-terra-cotta">
+                  쿠폰 코드 *
+                </Label>
+                <Input
+                  id="couponCode"
+                  value={newCouponFormData.code}
+                  onChange={(e) =>
+                    setNewCouponFormData({ ...newCouponFormData, code: e.target.value.toUpperCase() })
+                  }
+                  placeholder="예: WELCOME5000"
+                  className="border-brand-warm-taupe/30"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="newCouponName" className="text-brand-terra-cotta">
+                  쿠폰명 *
+                </Label>
+                <Input
+                  id="newCouponName"
+                  value={newCouponFormData.name}
+                  onChange={(e) =>
+                    setNewCouponFormData({ ...newCouponFormData, name: e.target.value })
+                  }
+                  placeholder="예: 신규가입 5,000원 할인"
+                  className="border-brand-warm-taupe/30"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-brand-terra-cotta">할인 유형 *</Label>
                 <Select
-                  value={couponFormData.discountType}
-                  onValueChange={(value: "percent" | "fixed") =>
-                    setCouponFormData({ ...couponFormData, discountType: value })
+                  value={newCouponFormData.discountType}
+                  onValueChange={(value: "percentage" | "fixed_amount") =>
+                    setNewCouponFormData({ ...newCouponFormData, discountType: value })
                   }
                 >
                   <SelectTrigger className="border-brand-warm-taupe/30">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="percent">퍼센트 (%)</SelectItem>
-                    <SelectItem value="fixed">정액 (원)</SelectItem>
+                    <SelectItem value="percentage">퍼센트 (%)</SelectItem>
+                    <SelectItem value="fixed_amount">정액 (원)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="discountValue" className="text-brand-terra-cotta">
+                <Label htmlFor="newDiscountValue" className="text-brand-terra-cotta">
                   할인 값 *
                 </Label>
                 <Input
-                  id="discountValue"
+                  id="newDiscountValue"
                   type="number"
-                  value={couponFormData.discountValue}
+                  value={newCouponFormData.discountValue}
                   onChange={(e) =>
-                    setCouponFormData({
-                      ...couponFormData,
+                    setNewCouponFormData({
+                      ...newCouponFormData,
                       discountValue: parseInt(e.target.value) || 0,
                     })
                   }
@@ -428,34 +543,53 @@ export function CouponPointManagement() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="expiryDate" className="text-brand-terra-cotta">
-                만료일 *
-              </Label>
-              <Input
-                id="expiryDate"
-                type="date"
-                value={couponFormData.expiryDate}
-                onChange={(e) =>
-                  setCouponFormData({ ...couponFormData, expiryDate: e.target.value })
-                }
-                className="border-brand-warm-taupe/30"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="validFrom" className="text-brand-terra-cotta">
+                  시작일 *
+                </Label>
+                <Input
+                  id="validFrom"
+                  type="date"
+                  value={newCouponFormData.validFrom}
+                  onChange={(e) =>
+                    setNewCouponFormData({ ...newCouponFormData, validFrom: e.target.value })
+                  }
+                  className="border-brand-warm-taupe/30"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="validUntil" className="text-brand-terra-cotta">
+                  만료일 *
+                </Label>
+                <Input
+                  id="validUntil"
+                  type="date"
+                  value={newCouponFormData.validUntil}
+                  onChange={(e) =>
+                    setNewCouponFormData({ ...newCouponFormData, validUntil: e.target.value })
+                  }
+                  className="border-brand-warm-taupe/30"
+                />
+              </div>
             </div>
 
             <div className="flex gap-2 justify-end pt-4">
               <Button
                 variant="outline"
-                onClick={() => setIsCouponDialogOpen(false)}
+                onClick={() => setIsNewCouponDialogOpen(false)}
                 className="border-brand-warm-taupe/30"
+                disabled={saving}
               >
                 취소
               </Button>
               <Button
-                onClick={handleIssueCoupon}
+                onClick={handleCreateCoupon}
+                disabled={saving}
                 className="bg-brand-terra-cotta text-white hover:bg-brand-warm-taupe"
               >
-                발행
+                {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                생성
               </Button>
             </div>
           </div>
@@ -468,7 +602,7 @@ export function CouponPointManagement() {
           <DialogHeader>
             <DialogTitle className="text-brand-terra-cotta">포인트 지급</DialogTitle>
             <DialogDescription>
-              {selectedUser?.name}님에게 포인트를 지급합니다
+              {selectedUser?.name}님에게 포인트를 지급합니다 (현재 보유: {selectedUser?.points.toLocaleString()}P)
             </DialogDescription>
           </DialogHeader>
 
@@ -509,13 +643,16 @@ export function CouponPointManagement() {
                 variant="outline"
                 onClick={() => setIsPointDialogOpen(false)}
                 className="border-brand-warm-taupe/30"
+                disabled={saving}
               >
                 취소
               </Button>
               <Button
                 onClick={handleIssuePoints}
+                disabled={saving}
                 className="bg-brand-terra-cotta text-white hover:bg-brand-warm-taupe"
               >
+                {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 지급
               </Button>
             </div>

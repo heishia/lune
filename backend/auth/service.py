@@ -6,6 +6,9 @@ from backend.core import models
 from backend.core.config import get_settings
 from backend.core.exceptions import ConflictError, NotFoundError, UnauthorizedError
 from backend.core.security import create_access_token, hash_password, verify_password
+from backend.core.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def get_user_by_email(db: Session, email: str) -> Optional[models.User]:
@@ -47,33 +50,54 @@ def authenticate_user(db: Session, email: str, password: str) -> models.User:
     try:
         settings = get_settings()
         
+        # 디버깅: 설정된 관리자 정보 확인
+        logger.info(f"Admin check - Settings admin_email: {settings.admin_email}")
+        logger.info(f"Admin check - Input email: {email}")
+        logger.info(f"Admin check - Email match: {email == settings.admin_email}")
+        logger.info(f"Admin check - Password match: {password == settings.admin_password}")
+        
         # 관리자 계정 체크
         if settings.admin_email and settings.admin_password:
             if email == settings.admin_email and password == settings.admin_password:
+                logger.info("Admin credentials matched! Creating/fetching admin user...")
                 # 관리자 계정이 DB에 있는지 확인
                 admin_user = get_user_by_email(db, email=settings.admin_email)
                 if not admin_user:
                     # 관리자 계정이 없으면 생성
+                    logger.info("Admin user not found in DB, creating new admin user...")
                     from uuid import uuid4
                     from datetime import datetime
                     admin_user = models.User(
                         id=str(uuid4()),
                         email=settings.admin_email,
                         name="관리자",
-                        password_hash=hash_password(settings.admin_password),  # 비밀번호 해시 저장
+                        password_hash=hash_password(settings.admin_password),
                         phone="000-0000-0000",
                         marketing_agreed=False,
                         is_active=True,
+                        is_admin=True,
+                        points=0,
                         created_at=datetime.utcnow(),
                         updated_at=datetime.utcnow(),
                     )
                     db.add(admin_user)
                     db.commit()
                     db.refresh(admin_user)
+                    logger.info("Admin user created successfully!")
+                else:
+                    logger.info("Admin user found in DB!")
+                    # 기존 관리자 계정의 is_admin이 false인 경우 업데이트
+                    if not admin_user.is_admin:
+                        from datetime import datetime
+                        admin_user.is_admin = True
+                        admin_user.updated_at = datetime.utcnow()
+                        db.commit()
+                        db.refresh(admin_user)
+                        logger.info("Admin user is_admin field updated to True!")
                 return admin_user
-    except Exception:
+    except Exception as e:
         # 설정 로드 실패 시 일반 사용자 로그인으로 진행
-        pass
+        logger.error(f"Admin auth error: {e}")
     
     user = get_user_by_email(db, email=email)
     if not user:
@@ -91,7 +115,11 @@ def authenticate_user(db: Session, email: str, password: str) -> models.User:
 def create_user_token(user: models.User) -> str:
     return create_access_token(
         subject=str(user.id),
-        extra_claims={"email": user.email, "name": user.name},
+        extra_claims={
+            "email": user.email,
+            "name": user.name,
+            "is_admin": getattr(user, 'is_admin', False),
+        },
     )
 
 

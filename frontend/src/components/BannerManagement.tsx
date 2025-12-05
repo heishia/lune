@@ -5,9 +5,10 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
-import { Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "./ui/checkbox";
+import { getBanners, createBanner, updateBanner, deleteBanner, type Banner as ApiBanner, type BannerContentBlock } from "../utils/api";
 
 interface BannerContent {
   type: "text" | "image";
@@ -27,6 +28,8 @@ export function BannerManagement() {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     bannerImage: "",
@@ -34,34 +37,30 @@ export function BannerManagement() {
     isActive: true,
   });
 
-  // 임시 배너 데이터 로드
+  // 배너 데이터 로드
+  const fetchBanners = async () => {
+    try {
+      setLoading(true);
+      const response = await getBanners();
+      const mappedBanners: Banner[] = response.banners.map((b) => ({
+        id: b.id,
+        title: b.title,
+        bannerImage: b.banner_image,
+        contentBlocks: b.content_blocks as BannerContent[],
+        isActive: b.is_active,
+        createdAt: b.created_at.split("T")[0],
+      }));
+      setBanners(mappedBanners);
+    } catch (error) {
+      console.error("Error fetching banners:", error);
+      toast.error("배너 목록을 불러오는데 실패했습니다");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const mockBanners: Banner[] = [
-      {
-        id: "1",
-        title: "신규 회원 가입 이벤트",
-        bannerImage: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800",
-        contentBlocks: [
-          { type: "text", content: "신규 회원 가입하시면 즉시 사용 가능한 5,000원 쿠폰을 드립니다!" },
-          { type: "image", content: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800" },
-          { type: "text", content: "이벤트 기간: 2024.11.01 - 2024.12.31" },
-        ],
-        isActive: true,
-        createdAt: "2024-11-15",
-      },
-      {
-        id: "2",
-        title: "블랙프라이데이 특가",
-        bannerImage: "https://images.unsplash.com/photo-1607082349566-187342175e2f?w=800",
-        contentBlocks: [
-          { type: "text", content: "전 상품 최대 50% 할인!" },
-          { type: "text", content: "기간: 2024.11.20 - 2024.11.30" },
-        ],
-        isActive: false,
-        createdAt: "2024-11-10",
-      },
-    ];
-    setBanners(mockBanners);
+    fetchBanners();
   }, []);
 
   const handleOpenDialog = (banner?: Banner) => {
@@ -85,43 +84,64 @@ export function BannerManagement() {
     setIsDialogOpen(true);
   };
 
-  const handleSaveBanner = () => {
+  const handleSaveBanner = async () => {
     if (!formData.title || !formData.bannerImage) {
       toast.error("제목과 배너 이미지는 필수입니다");
       return;
     }
 
-    const newBanner: Banner = {
-      id: editingBanner?.id || Date.now().toString(),
-      title: formData.title,
-      bannerImage: formData.bannerImage,
-      contentBlocks: formData.contentBlocks,
-      isActive: formData.isActive,
-      createdAt: editingBanner?.createdAt || new Date().toISOString().split("T")[0],
-    };
+    try {
+      setSaving(true);
+      const bannerData = {
+        title: formData.title,
+        banner_image: formData.bannerImage,
+        content_blocks: formData.contentBlocks as BannerContentBlock[],
+        is_active: formData.isActive,
+      };
 
-    if (editingBanner) {
-      setBanners(banners.map((b) => (b.id === editingBanner.id ? newBanner : b)));
-      toast.success("배너가 수정되었습니다");
-    } else {
-      setBanners([newBanner, ...banners]);
-      toast.success("배너가 등록되었습니다");
+      if (editingBanner) {
+        await updateBanner(editingBanner.id, bannerData);
+        toast.success("배너가 수정되었습니다");
+      } else {
+        await createBanner(bannerData);
+        toast.success("배너가 등록되었습니다");
+      }
+
+      setIsDialogOpen(false);
+      fetchBanners();
+    } catch (error) {
+      console.error("Error saving banner:", error);
+      toast.error("배너 저장에 실패했습니다");
+    } finally {
+      setSaving(false);
     }
-
-    setIsDialogOpen(false);
   };
 
-  const handleDeleteBanner = (id: string) => {
+  const handleDeleteBanner = async (id: string) => {
     if (!confirm("정말 이 배너를 삭제하시겠습니까?")) return;
-    setBanners(banners.filter((b) => b.id !== id));
-    toast.success("배너가 삭제되었습니다");
+    
+    try {
+      await deleteBanner(id);
+      toast.success("배너가 삭제되었습니다");
+      fetchBanners();
+    } catch (error) {
+      console.error("Error deleting banner:", error);
+      toast.error("배너 삭제에 실패했습니다");
+    }
   };
 
-  const toggleBannerActive = (id: string) => {
-    setBanners(
-      banners.map((b) => (b.id === id ? { ...b, isActive: !b.isActive } : b))
-    );
-    toast.success("배너 상태가 변경되었습니다");
+  const toggleBannerActive = async (id: string) => {
+    const banner = banners.find((b) => b.id === id);
+    if (!banner) return;
+
+    try {
+      await updateBanner(id, { is_active: !banner.isActive });
+      toast.success("배너 상태가 변경되었습니다");
+      fetchBanners();
+    } catch (error) {
+      console.error("Error toggling banner:", error);
+      toast.error("배너 상태 변경에 실패했습니다");
+    }
   };
 
   const addContentBlock = (type: "text" | "image") => {
@@ -157,6 +177,11 @@ export function BannerManagement() {
         </Button>
       </div>
 
+      {loading ? (
+        <div className="text-center py-20 text-brand-warm-taupe">로딩 중...</div>
+      ) : banners.length === 0 ? (
+        <div className="text-center py-20 text-brand-warm-taupe">등록된 배너가 없습니다</div>
+      ) : (
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <Table>
           <TableHeader>
@@ -221,6 +246,7 @@ export function BannerManagement() {
           </TableBody>
         </Table>
       </div>
+      )}
 
       {/* 배너 추가/수정 다이얼로그 */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -360,13 +386,16 @@ export function BannerManagement() {
                 variant="outline"
                 onClick={() => setIsDialogOpen(false)}
                 className="border-brand-warm-taupe/30"
+                disabled={saving}
               >
                 취소
               </Button>
               <Button
                 onClick={handleSaveBanner}
                 className="bg-brand-terra-cotta text-white hover:bg-brand-warm-taupe"
+                disabled={saving}
               >
+                {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {editingBanner ? "수정" : "저장"}
               </Button>
             </div>

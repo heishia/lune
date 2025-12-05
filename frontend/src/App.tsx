@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Header } from "./components/Header";
-import { HeroSection } from "./components/HeroSection";
 import { FeaturedSection } from "./components/FeaturedSection";
 import { CategorySection } from "./components/CategorySection";
 import { ProductGrid } from "./components/ProductGrid";
@@ -393,8 +392,9 @@ export default function App() {
         cartItemsCount={cartItems.length}
         userEmail={userEmail}
       />
-      <HeroSection />
-      <FeaturedSection />
+      <div className="mt-48 mobile-mt-24">
+        <FeaturedSection />
+      </div>
       <CategorySection />
       <ProductGrid 
         onProductClick={handleProductClick} 

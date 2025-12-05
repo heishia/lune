@@ -1,10 +1,10 @@
+/* Pretendard 폰트 임포트 */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+
 /* Tailwind 기본 지시문 */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Pretendard 폰트 임포트 */
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
 
 :root {
   /* Brand Colors */

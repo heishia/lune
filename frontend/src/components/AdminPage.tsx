@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, LogOut, Image as ImageIcon, Instagram, Package, Calendar, Gift, Megaphone, MessageSquare } from "lucide-react";
+import { Plus, Edit, Trash2, LogOut, Image as ImageIcon, Instagram, Package, Calendar, Gift, Megaphone, MessageSquare, FileText } from "lucide-react";
 import logo from "figma:asset/e95f335bacb8348ed117f587f5d360e078bf26b6.png";
 import { projectId, publicAnonKey } from "../utils/supabase/info";
 import { InstagramSettings } from "./InstagramSettings";
@@ -16,7 +16,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Checkbox } from "./ui/checkbox";
 import { BannerManagement } from "./BannerManagement";
 import { CouponPointManagement } from "./CouponPointManagement";
-import { getKakaoSettings, updateKakaoSettings, getMarketingUsers, sendKakaoMessage, type MarketingUser } from "../utils/api";
+import { EditorPage } from "./EditorPage";
+import { 
+  getKakaoSettings, 
+  updateKakaoSettings, 
+  getMarketingUsers, 
+  sendKakaoMessage, 
+  getAdminOrders,
+  updateOrderStatus,
+  type MarketingUser,
+  type AdminOrder,
+  type Content,
+} from "../utils/api";
 
 interface Product {
   id: number;
@@ -41,6 +52,18 @@ interface AdminPageProps {
 
 const CATEGORIES = ["TOP", "BOTTOM", "ONEPIECE", "SET", "SHOES", "BAG & ACC"];
 const SIZES = ["S", "M", "L", "XL", "230", "235", "240", "245", "250", "ONE SIZE"];
+const COLOR_OPTIONS = [
+  { name: "White", hex: "#FFFFFF" },
+  { name: "Black", hex: "#1a1a1a" },
+  { name: "Beige", hex: "#D4C4B0" },
+  { name: "Gray", hex: "#9CA3AF" },
+  { name: "Navy", hex: "#1E3A5F" },
+  { name: "Brown", hex: "#8B5A2B" },
+  { name: "Cream", hex: "#FFFDD0" },
+  { name: "Pink", hex: "#F8B4C4" },
+  { name: "Blue", hex: "#4A90D9" },
+  { name: "Green", hex: "#6B8E6B" },
+];
 
 export function AdminPage({ onBack }: AdminPageProps) {
   const [products, setProducts] = useState<Product[]>([]);
@@ -62,6 +85,16 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [marketingUsers, setMarketingUsers] = useState<MarketingUser[]>([]);
   const [messageText, setMessageText] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
+
+  // 주문 관리 상태
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [orderStatusChanges, setOrderStatusChanges] = useState<Record<string, string>>({});
+
+  // 에디터 페이지 상태
+  const [showEditor, setShowEditor] = useState(false);
+  const [editorProductId, setEditorProductId] = useState<number | null>(null);
+  const [editorProductName, setEditorProductName] = useState("");
 
   // 폼 상태
   const [formData, setFormData] = useState({
@@ -119,7 +152,59 @@ export function AdminPage({ onBack }: AdminPageProps) {
   useEffect(() => {
     fetchKakaoSettings();
     fetchMarketingUsers();
+    fetchOrders();
   }, []);
+
+  // 주문 목록 조회
+  const fetchOrders = async () => {
+    try {
+      setOrdersLoading(true);
+      const response = await getAdminOrders({ limit: 50 });
+      setOrders(response.orders);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      toast.error("주문 목록을 불러오는데 실패했습니다");
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  // 주문 상태 변경
+  const handleUpdateOrderStatus = async (orderId: string) => {
+    const newStatus = orderStatusChanges[orderId];
+    if (!newStatus) {
+      toast.error("변경할 상태를 선택하세요");
+      return;
+    }
+
+    try {
+      await updateOrderStatus(orderId, { status: newStatus });
+      toast.success("주문 상태가 업데이트되었습니다");
+      fetchOrders();
+      setOrderStatusChanges((prev) => {
+        const updated = { ...prev };
+        delete updated[orderId];
+        return updated;
+      });
+    } catch (error: any) {
+      console.error("Error updating order status:", error);
+      toast.error(error.message || "주문 상태 변경에 실패했습니다");
+    }
+  };
+
+  // 상태 코드를 한글로 변환
+  const getStatusLabel = (status: string) => {
+    const statusMap: Record<string, string> = {
+      pending: "결제대기",
+      paid: "결제완료",
+      preparing: "상품준비중",
+      shipped: "배송중",
+      delivered: "배송완료",
+      cancelled: "취소됨",
+      refunded: "환불됨",
+    };
+    return statusMap[status] || status;
+  };
 
   // 상품 추가/수정 다이얼로그 열기
   const handleOpenDialog = (product?: Product) => {
@@ -263,6 +348,20 @@ export function AdminPage({ onBack }: AdminPageProps) {
     }));
   };
 
+  // 색상 토글
+  const toggleColor = (colorName: string) => {
+    setFormData((prev) => {
+      const currentColors = prev.colors
+        .split(",")
+        .map((c) => c.trim())
+        .filter((c) => c);
+      const newColors = currentColors.includes(colorName)
+        ? currentColors.filter((c) => c !== colorName)
+        : [...currentColors, colorName];
+      return { ...prev, colors: newColors.join(", ") };
+    });
+  };
+
   // 카카오톡 설정 조회
   const fetchKakaoSettings = async () => {
     try {
@@ -351,23 +450,53 @@ export function AdminPage({ onBack }: AdminPageProps) {
     }
   };
 
+  // 에디터 페이지 표시
+  if (showEditor) {
+    return (
+      <EditorPage
+        contentType="product"
+        referenceId={editorProductId?.toString()}
+        initialTitle={`${editorProductName} 상세 설명`}
+        onSave={(content) => {
+          toast.success("상세 설명이 저장되었습니다");
+          setShowEditor(false);
+          setEditorProductId(null);
+        }}
+        onBack={() => {
+          setShowEditor(false);
+          setEditorProductId(null);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-brand-cream">
       {/* Header */}
       <header className="bg-white border-b border-brand-warm-taupe/20 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <img src={logo} alt="LUNE" className="h-10 w-auto" />
-            <span className="text-brand-terra-cotta">관리자 페이지</span>
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center">
+          {/* 왼쪽: 로고 (작게) */}
+          <div className="flex-shrink-0 w-32">
+            <img src={logo} alt="LUNE" className="h-6 w-auto" />
           </div>
-          <Button
-            onClick={onBack}
-            variant="outline"
-            className="border-brand-terra-cotta text-brand-terra-cotta hover:bg-brand-terra-cotta hover:text-white"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            돌아가기
-          </Button>
+          
+          {/* 중앙: 관리자 페이지 텍스트 */}
+          <div className="flex-1 text-center">
+            <span className="text-brand-terra-cotta font-medium tracking-wide">관리자 페이지</span>
+          </div>
+          
+          {/* 오른쪽: 돌아가기 버튼 */}
+          <div className="flex-shrink-0 w-32 flex justify-end">
+            <Button
+              onClick={onBack}
+              variant="outline"
+              size="sm"
+              className="border-brand-terra-cotta text-brand-terra-cotta hover:bg-brand-terra-cotta hover:text-white"
+            >
+              <LogOut className="w-4 h-4 mr-1" />
+              돌아가기
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -527,175 +656,101 @@ export function AdminPage({ onBack }: AdminPageProps) {
           <TabsContent value="orders" className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-brand-terra-cotta">주문 관리</h2>
+              <Button
+                onClick={fetchOrders}
+                variant="outline"
+                className="border-brand-warm-taupe/30"
+              >
+                새로고침
+              </Button>
             </div>
 
+            {ordersLoading ? (
+              <div className="text-center py-20 text-brand-warm-taupe">로딩 중...</div>
+            ) : orders.length === 0 ? (
+              <div className="text-center py-20 text-brand-warm-taupe">주문 내역이 없습니다</div>
+            ) : (
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-32">주문번호</TableHead>
-                    <TableHead className="w-24">이미지</TableHead>
-                    <TableHead>상품명</TableHead>
+                    <TableHead>상품</TableHead>
                     <TableHead className="w-24">고객명</TableHead>
-                    <TableHead className="text-center w-24">수량</TableHead>
                     <TableHead className="text-right w-28">금액</TableHead>
                     <TableHead className="w-32">주문일시</TableHead>
-                    <TableHead className="w-32">배송상태</TableHead>
-                    <TableHead className="w-32">액션</TableHead>
+                    <TableHead className="w-36">배송상태</TableHead>
+                    <TableHead className="w-24">액션</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {/* 임시 주문 데이터 */}
-                  <TableRow>
-                    <TableCell className="font-mono text-xs">20241118001</TableCell>
-                    <TableCell>
-                      <img
-                        src="https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=400"
-                        alt="Cashmere Blend Knit"
-                        className="w-16 h-16 object-cover rounded"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="text-sm">Cashmere Blend Knit</div>
-                        <div className="text-xs text-brand-warm-taupe">Beige / M</div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">김루네</TableCell>
-                    <TableCell className="text-center">1</TableCell>
-                    <TableCell className="text-right text-brand-terra-cotta">
-                      89,000원
-                    </TableCell>
-                    <TableCell className="text-xs text-brand-warm-taupe">
-                      2024.11.15
-                    </TableCell>
-                    <TableCell>
-                      <Select defaultValue="배송완료">
-                        <SelectTrigger className="h-9 text-xs border-brand-warm-taupe/30">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="준비중">준비중</SelectItem>
-                          <SelectItem value="배송중">배송중</SelectItem>
-                          <SelectItem value="배송완료">배송완료</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs border-brand-warm-taupe/30 hover:bg-brand-warm-taupe/10"
-                        onClick={() => toast.success("주문 상태가 업데이트되었습니다")}
-                      >
-                        저장
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                  
-                  <TableRow>
-                    <TableCell className="font-mono text-xs">20241118002</TableCell>
-                    <TableCell>
-                      <img
-                        src="https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400"
-                        alt="Wide Leg Trousers"
-                        className="w-16 h-16 object-cover rounded"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="text-sm">Wide Leg Trousers</div>
-                        <div className="text-xs text-brand-warm-taupe">Taupe / L</div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">김루네</TableCell>
-                    <TableCell className="text-center">1</TableCell>
-                    <TableCell className="text-right text-brand-terra-cotta">
-                      68,000원
-                    </TableCell>
-                    <TableCell className="text-xs text-brand-warm-taupe">
-                      2024.11.16
-                    </TableCell>
-                    <TableCell>
-                      <Select defaultValue="배송중">
-                        <SelectTrigger className="h-9 text-xs border-brand-warm-taupe/30">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="준비중">준비중</SelectItem>
-                          <SelectItem value="배송중">배송중</SelectItem>
-                          <SelectItem value="배송완료">배송완료</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs border-brand-warm-taupe/30 hover:bg-brand-warm-taupe/10"
-                        onClick={() => toast.success("주문 상태가 업데이트되었습니다")}
-                      >
-                        저장
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                  
-                  <TableRow>
-                    <TableCell className="font-mono text-xs">20241118003</TableCell>
-                    <TableCell>
-                      <img
-                        src="https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=400"
-                        alt="Linen Blend Dress"
-                        className="w-16 h-16 object-cover rounded"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="text-sm">Linen Blend Dress</div>
-                        <div className="text-xs text-brand-warm-taupe">Cream / S</div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">김루네</TableCell>
-                    <TableCell className="text-center">1</TableCell>
-                    <TableCell className="text-right text-brand-terra-cotta">
-                      125,000원
-                    </TableCell>
-                    <TableCell className="text-xs text-brand-warm-taupe">
-                      2024.11.18
-                    </TableCell>
-                    <TableCell>
-                      <Select defaultValue="준비중">
-                        <SelectTrigger className="h-9 text-xs border-brand-warm-taupe/30">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="준비중">준비중</SelectItem>
-                          <SelectItem value="배송중">배송중</SelectItem>
-                          <SelectItem value="배송완료">배송완료</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs border-brand-warm-taupe/30 hover:bg-brand-warm-taupe/10"
-                        onClick={() => toast.success("주문 상태가 업데이트되었습니다")}
-                      >
-                        저장
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                  {orders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-mono text-xs">{order.order_number}</TableCell>
+                      <TableCell>
+                        {order.items.length > 0 ? (
+                          <div className="flex items-center gap-2">
+                            {order.items[0].product_image && (
+                              <img
+                                src={order.items[0].product_image}
+                                alt={order.items[0].product_name}
+                                className="w-12 h-12 object-cover rounded"
+                              />
+                            )}
+                            <div>
+                              <div className="text-sm">{order.items[0].product_name}</div>
+                              <div className="text-xs text-brand-warm-taupe">
+                                {order.items[0].color} / {order.items[0].size}
+                                {order.items.length > 1 && ` 외 ${order.items.length - 1}건`}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-brand-warm-taupe text-sm">상품 정보 없음</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm">{order.user_name || order.recipient_name}</TableCell>
+                      <TableCell className="text-right text-brand-terra-cotta">
+                        {order.final_amount.toLocaleString()}원
+                      </TableCell>
+                      <TableCell className="text-xs text-brand-warm-taupe">
+                        {order.created_at.split("T")[0]}
+                      </TableCell>
+                      <TableCell>
+                        <Select 
+                          value={orderStatusChanges[order.id] || order.status}
+                          onValueChange={(value) => setOrderStatusChanges((prev) => ({ ...prev, [order.id]: value }))}
+                        >
+                          <SelectTrigger className="h-9 text-xs border-brand-warm-taupe/30">
+                            <SelectValue>{getStatusLabel(orderStatusChanges[order.id] || order.status)}</SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">결제대기</SelectItem>
+                            <SelectItem value="paid">결제완료</SelectItem>
+                            <SelectItem value="preparing">상품준비중</SelectItem>
+                            <SelectItem value="shipped">배송중</SelectItem>
+                            <SelectItem value="delivered">배송완료</SelectItem>
+                            <SelectItem value="cancelled">취소</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs border-brand-warm-taupe/30 hover:bg-brand-warm-taupe/10"
+                          onClick={() => handleUpdateOrderStatus(order.id)}
+                          disabled={!orderStatusChanges[order.id] || orderStatusChanges[order.id] === order.status}
+                        >
+                          저장
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
-            
-            <div className="bg-white rounded-lg shadow p-6">
-              <p className="text-sm text-brand-warm-taupe tracking-wide">
-                💡 주문 관리 기능은 데이터베이스 연동 후 완전히 작동합니다. 
-                현재는 임시 데이터로 표시되며, 실제 주문 데이터는 백엔드 구현 시 연동됩니다.
-              </p>
-            </div>
+            )}
           </TabsContent>
 
           {/* 배너 관리 탭 */}
@@ -905,60 +960,24 @@ export function AdminPage({ onBack }: AdminPageProps) {
               />
             </div>
 
-            {/* 설명 */}
+            {/* 판매 가격 */}
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-brand-terra-cotta">
-                상품 설명 *
+              <Label htmlFor="price" className="text-brand-terra-cotta">
+                판매 가격 *
               </Label>
-              <Textarea
-                id="description"
-                value={formData.description}
+              <Input
+                id="price"
+                type="number"
+                value={formData.price}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, description: e.target.value }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    price: parseInt(e.target.value) || 0,
+                  }))
                 }
-                placeholder="상품 설명을 입력하세요"
-                className="border-brand-warm-taupe/30 min-h-24"
+                placeholder="0"
+                className="border-brand-warm-taupe/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
-            </div>
-
-            {/* 가격 */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="price" className="text-brand-terra-cotta">
-                  판매 가격 *
-                </Label>
-                <Input
-                  id="price"
-                  type="number"
-                  value={formData.price}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      price: parseInt(e.target.value) || 0,
-                    }))
-                  }
-                  placeholder="0"
-                  className="border-brand-warm-taupe/30"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="original_price" className="text-brand-terra-cotta">
-                  정가 (선택)
-                </Label>
-                <Input
-                  id="original_price"
-                  type="number"
-                  value={formData.original_price}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      original_price: parseInt(e.target.value) || 0,
-                    }))
-                  }
-                  placeholder="0"
-                  className="border-brand-warm-taupe/30"
-                />
-              </div>
             </div>
 
             {/* 재고 */}
@@ -981,36 +1000,26 @@ export function AdminPage({ onBack }: AdminPageProps) {
               />
             </div>
 
-            {/* 이미지 URL */}
+            {/* 에디터로 편집하기 버튼 */}
             <div className="space-y-2">
-              <Label htmlFor="image_url" className="text-brand-terra-cotta">
-                이미지 URL
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  id="image_url"
-                  value={formData.image_url}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, image_url: e.target.value }))
-                  }
-                  placeholder="https://..."
-                  className="border-brand-warm-taupe/30 flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="border-brand-warm-taupe/30"
-                >
-                  <ImageIcon className="w-4 h-4" />
-                </Button>
-              </div>
-              {formData.image_url && (
-                <img
-                  src={formData.image_url}
-                  alt="Preview"
-                  className="w-32 h-32 object-cover rounded mt-2"
-                />
-              )}
+              <Label className="text-brand-terra-cotta">상세 설명 및 이미지</Label>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-brand-terra-cotta text-brand-terra-cotta hover:bg-brand-terra-cotta hover:text-white"
+                onClick={() => {
+                  setEditorProductId(editingProduct?.id || null);
+                  setEditorProductName(formData.name || "새 상품");
+                  setIsDialogOpen(false);
+                  setShowEditor(true);
+                }}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                에디터로 편집하기
+              </Button>
+              <p className="text-xs text-brand-warm-taupe">
+                상품 상세 페이지에 표시될 이미지와 설명을 에디터에서 작성합니다
+              </p>
             </div>
 
             {/* 카테고리 */}
@@ -1057,18 +1066,41 @@ export function AdminPage({ onBack }: AdminPageProps) {
 
             {/* 색상 */}
             <div className="space-y-2">
-              <Label htmlFor="colors" className="text-brand-terra-cotta">
-                색상 (쉼표로 구분)
-              </Label>
-              <Input
-                id="colors"
-                value={formData.colors}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, colors: e.target.value }))
-                }
-                placeholder="예: Beige, Cream, Taupe"
-                className="border-brand-warm-taupe/30"
-              />
+              <Label className="text-brand-terra-cotta">색상</Label>
+              <div className="flex flex-wrap gap-3">
+                {COLOR_OPTIONS.map((color) => {
+                  const isSelected = formData.colors
+                    .split(",")
+                    .map((c) => c.trim())
+                    .includes(color.name);
+                  return (
+                    <button
+                      key={color.name}
+                      type="button"
+                      onClick={() => toggleColor(color.name)}
+                      className={`relative w-8 h-8 rounded-full transition-all ${
+                        isSelected
+                          ? "ring-2 ring-brand-terra-cotta ring-offset-2"
+                          : "ring-1 ring-brand-warm-taupe/30"
+                      }`}
+                      style={{ backgroundColor: color.hex }}
+                      title={color.name}
+                    >
+                      {isSelected && (
+                        <span className="absolute inset-0 flex items-center justify-center text-xs font-bold"
+                          style={{ color: color.name === "Black" || color.name === "Navy" || color.name === "Brown" ? "#fff" : "#333" }}>
+                          v
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {formData.colors && (
+                <p className="text-xs text-brand-warm-taupe mt-1">
+                  선택됨: {formData.colors}
+                </p>
+              )}
             </div>
 
             {/* 옵션 */}

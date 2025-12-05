@@ -32,3 +32,8 @@ class ConflictError(DomainError):
     error_code = "conflict"
 
 
+class BadRequestError(DomainError):
+    status_code = status.HTTP_400_BAD_REQUEST
+    error_code = "bad_request"
+
+

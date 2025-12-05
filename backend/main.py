@@ -7,11 +7,16 @@ from backend.auth.router import router as auth_router
 from backend.core.config import get_settings
 from backend.core.exceptions import DomainError
 from backend.core.logger import configure_logging, get_logger
+from backend.core.database import engine, get_db
 from backend.products.router import router as products_router
 from backend.cart.router import router as cart_router
 from backend.orders.router import router as orders_router
 from backend.kakao.router import router as kakao_router
 from backend.instagram.router import router as instagram_router
+from backend.banners.router import router as banners_router
+from backend.coupons.router import router as coupons_router
+from backend.admin.router import router as admin_router
+from backend.contents.router import router as contents_router
 
 settings = get_settings()
 configure_logging()
@@ -22,6 +27,16 @@ logger.info("=" * 60)
 logger.info("서버 시작 중...")
 logger.info("애플리케이션: %s v%s", settings.app_name, settings.app_version)
 logger.info("환경: %s (Debug: %s)", settings.env, settings.debug)
+
+# 데이터베이스 연결 테스트
+try:
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        conn.execute(text("SELECT 1"))
+    logger.info("데이터베이스 연결 성공!")
+except Exception as e:
+    logger.error("데이터베이스 연결 실패: %s", str(e))
+
 logger.info("=" * 60)
 
 app = FastAPI(
@@ -127,5 +142,9 @@ app.include_router(cart_router)
 app.include_router(orders_router)
 app.include_router(kakao_router)
 app.include_router(instagram_router)
+app.include_router(banners_router)
+app.include_router(coupons_router)
+app.include_router(admin_router)
+app.include_router(contents_router)
 
 

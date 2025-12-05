@@ -388,3 +388,378 @@ export async function sendKakaoMessage(message: string): Promise<SendMessageResp
     body: JSON.stringify({ message }),
   });
 }
+
+// ==========================================
+// Banners API (배너 관리)
+// ==========================================
+
+export interface BannerContentBlock {
+  type: 'text' | 'image';
+  content: string;
+}
+
+export interface Banner {
+  id: string;
+  title: string;
+  banner_image: string;
+  content_blocks: BannerContentBlock[];
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BannersResponse {
+  banners: Banner[];
+  total: number;
+}
+
+export async function getBanners(activeOnly: boolean = false): Promise<BannersResponse> {
+  const query = activeOnly ? '?active_only=true' : '';
+  return apiRequest(`/banners${query}`);
+}
+
+export async function getActiveBanners(): Promise<BannersResponse> {
+  return apiRequest('/banners/active');
+}
+
+export async function getBanner(id: string): Promise<Banner> {
+  return apiRequest(`/banners/${id}`);
+}
+
+export async function createBanner(data: {
+  title: string;
+  banner_image: string;
+  content_blocks: BannerContentBlock[];
+  is_active?: boolean;
+  display_order?: number;
+}): Promise<Banner> {
+  return apiRequest('/banners', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateBanner(id: string, data: {
+  title?: string;
+  banner_image?: string;
+  content_blocks?: BannerContentBlock[];
+  is_active?: boolean;
+  display_order?: number;
+}): Promise<Banner> {
+  return apiRequest(`/banners/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteBanner(id: string): Promise<{ success: boolean }> {
+  return apiRequest(`/banners/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// ==========================================
+// Admin Orders API (관리자용 주문 관리)
+// ==========================================
+
+export interface AdminOrderItem {
+  id: string;
+  product_name: string;
+  product_image?: string;
+  quantity: number;
+  color: string;
+  size: string;
+  price: number;
+}
+
+export interface AdminOrder {
+  id: string;
+  order_number: string;
+  user_id?: string;
+  user_name?: string;
+  user_email?: string;
+  status: string;
+  total_amount: number;
+  discount_amount: number;
+  shipping_fee: number;
+  final_amount: number;
+  recipient_name: string;
+  recipient_phone: string;
+  postal_code: string;
+  address: string;
+  address_detail?: string;
+  delivery_message?: string;
+  payment_method: string;
+  payment_status: string;
+  tracking_number?: string;
+  courier?: string;
+  created_at: string;
+  items: AdminOrderItem[];
+}
+
+export interface AdminOrdersResponse {
+  orders: AdminOrder[];
+  total: number;
+  page: number;
+  total_pages: number;
+}
+
+export async function getAdminOrders(params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+}): Promise<AdminOrdersResponse> {
+  const queryParams = new URLSearchParams();
+  if (params?.page) queryParams.set('page', params.page.toString());
+  if (params?.limit) queryParams.set('limit', params.limit.toString());
+  if (params?.status) queryParams.set('status', params.status);
+
+  const query = queryParams.toString();
+  return apiRequest(`/admin/orders${query ? `?${query}` : ''}`);
+}
+
+export async function getAdminOrder(orderId: string): Promise<AdminOrder> {
+  return apiRequest(`/admin/orders/${orderId}`);
+}
+
+export async function updateOrderStatus(orderId: string, data: {
+  status: string;
+  tracking_number?: string;
+  courier?: string;
+}): Promise<AdminOrder> {
+  return apiRequest(`/admin/orders/${orderId}/status`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+// ==========================================
+// Admin Users API (관리자용 사용자 관리)
+// ==========================================
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  phone: string;
+  points: number;
+  is_active: boolean;
+  marketing_agreed: boolean;
+  created_at: string;
+}
+
+export interface AdminUsersResponse {
+  users: AdminUser[];
+  total: number;
+}
+
+export async function searchUsers(query: string): Promise<AdminUsersResponse> {
+  return apiRequest(`/admin/users?query=${encodeURIComponent(query)}`);
+}
+
+export async function getAdminUser(userId: string): Promise<AdminUser> {
+  return apiRequest(`/admin/users/${userId}`);
+}
+
+// ==========================================
+// Admin Points API (관리자용 포인트 관리)
+// ==========================================
+
+export interface PointHistory {
+  id: string;
+  user_id: string;
+  points: number;
+  reason: string;
+  created_at: string;
+}
+
+export interface PointHistoryResponse {
+  history: PointHistory[];
+  total: number;
+}
+
+export async function issuePoints(userId: string, data: {
+  points: number;
+  reason: string;
+}): Promise<PointHistory> {
+  return apiRequest(`/admin/users/${userId}/points`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getPointHistory(userId?: string): Promise<PointHistoryResponse> {
+  const query = userId ? `?user_id=${userId}` : '';
+  return apiRequest(`/admin/points/history${query}`);
+}
+
+// ==========================================
+// Coupons API (쿠폰 관리)
+// ==========================================
+
+export interface Coupon {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  discount_type: 'percentage' | 'fixed_amount';
+  discount_value: number;
+  min_purchase_amount: number;
+  max_discount_amount?: number;
+  valid_from: string;
+  valid_until: string;
+  usage_limit?: number;
+  usage_count: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface CouponsResponse {
+  coupons: Coupon[];
+  total: number;
+}
+
+export async function getCoupons(): Promise<CouponsResponse> {
+  return apiRequest('/coupons');
+}
+
+export async function createCoupon(data: {
+  code: string;
+  name: string;
+  description?: string;
+  discount_type: string;
+  discount_value: number;
+  min_purchase_amount?: number;
+  max_discount_amount?: number;
+  valid_from: string;
+  valid_until: string;
+  usage_limit?: number;
+  is_active?: boolean;
+}): Promise<Coupon> {
+  return apiRequest('/coupons', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateCoupon(couponId: string, data: Partial<Coupon>): Promise<Coupon> {
+  return apiRequest(`/coupons/${couponId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteCoupon(couponId: string): Promise<{ success: boolean }> {
+  return apiRequest(`/coupons/${couponId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function issueCouponToUser(couponId: string, userId: string): Promise<{ success: boolean; message: string }> {
+  return apiRequest(`/coupons/${couponId}/issue/${userId}`, {
+    method: 'POST',
+  });
+}
+
+export interface UserCoupon {
+  id: string;
+  coupon_id: string;
+  coupon_name: string;
+  coupon_code: string;
+  discount_type: string;
+  discount_value: number;
+  valid_until: string;
+  is_used: boolean;
+  used_at?: string;
+  created_at: string;
+}
+
+export interface UserCouponsResponse {
+  coupons: UserCoupon[];
+  total: number;
+}
+
+export async function getMyCoupons(): Promise<UserCouponsResponse> {
+  return apiRequest('/coupons/my');
+}
+
+// ==========================================
+// Contents API (에디터 콘텐츠)
+// ==========================================
+
+export interface ContentBlock {
+  id: string;
+  type: string; // "text", "image", "heading", "divider", "quote"
+  data: Record<string, any>;
+}
+
+export interface Content {
+  id: string;
+  title: string;
+  content_type: string;
+  reference_id?: string;
+  blocks: ContentBlock[];
+  thumbnail_url?: string;
+  is_published: boolean;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContentsResponse {
+  contents: Content[];
+  total: number;
+}
+
+export async function getContents(params?: {
+  content_type?: string;
+  reference_id?: string;
+}): Promise<ContentsResponse> {
+  const queryParams = new URLSearchParams();
+  if (params?.content_type) queryParams.set('content_type', params.content_type);
+  if (params?.reference_id) queryParams.set('reference_id', params.reference_id);
+
+  const query = queryParams.toString();
+  return apiRequest(`/contents${query ? `?${query}` : ''}`);
+}
+
+export async function getContent(contentId: string): Promise<Content> {
+  return apiRequest(`/contents/${contentId}`);
+}
+
+export async function getContentByReference(contentType: string, referenceId: string): Promise<Content | null> {
+  return apiRequest(`/contents/by-reference/${contentType}/${referenceId}`);
+}
+
+export async function createContent(data: {
+  title: string;
+  content_type: string;
+  reference_id?: string;
+  blocks: ContentBlock[];
+  thumbnail_url?: string;
+  is_published?: boolean;
+}): Promise<Content> {
+  return apiRequest('/contents', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateContent(contentId: string, data: {
+  title?: string;
+  blocks?: ContentBlock[];
+  thumbnail_url?: string;
+  is_published?: boolean;
+}): Promise<Content> {
+  return apiRequest(`/contents/${contentId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteContent(contentId: string): Promise<{ success: boolean }> {
+  return apiRequest(`/contents/${contentId}`, {
+    method: 'DELETE',
+  });
+}

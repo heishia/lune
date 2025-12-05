@@ -79,4 +79,17 @@ def get_current_user_id(payload: dict[str, Any] = Depends(get_current_user_paylo
     return str(subject)
 
 
+def get_admin_user_id(payload: dict[str, Any] = Depends(get_current_user_payload)) -> str:
+    """관리자 권한이 있는 사용자인지 확인"""
+    subject = payload.get("sub")
+    if not subject:
+        raise UnauthorizedError("토큰에 사용자 정보가 없습니다.")
+    
+    is_admin = payload.get("is_admin", False)
+    if not is_admin:
+        raise UnauthorizedError("관리자 권한이 필요합니다.")
+    
+    return str(subject)
+
+
 

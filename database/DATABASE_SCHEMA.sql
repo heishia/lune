@@ -17,7 +17,9 @@ CREATE TABLE users (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_login TIMESTAMP,
   is_active BOOLEAN DEFAULT true,
+  is_admin BOOLEAN DEFAULT false,
   marketing_agreed BOOLEAN DEFAULT false,
+  points INTEGER DEFAULT 0,
   -- 소셜 로그인 정보
   provider VARCHAR(50), -- google, naver, kakao, null (일반 회원가입)
   provider_id VARCHAR(255)
@@ -414,6 +416,82 @@ EXECUTE FUNCTION update_updated_at_column();
 
 -- Instagram 설정은 단일 레코드만 유지 (id가 항상 동일한 값)
 -- 초기 레코드는 애플리케이션에서 자동 생성되므로 여기서는 생성하지 않음
+
+-- ==========================================
+-- 17. Banners (배너) 테이블
+-- ==========================================
+CREATE TABLE banners (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title VARCHAR(255) NOT NULL,
+  banner_image TEXT NOT NULL,
+  content_blocks JSONB DEFAULT '[]'::jsonb,
+  is_active BOOLEAN DEFAULT true,
+  display_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_banners_is_active ON banners(is_active);
+CREATE INDEX idx_banners_display_order ON banners(display_order);
+
+CREATE TRIGGER update_banners_updated_at
+BEFORE UPDATE ON banners
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
+
+-- ==========================================
+-- 18. User_Points (포인트 내역) 테이블
+-- ==========================================
+CREATE TABLE user_points (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  points INTEGER NOT NULL,
+  reason VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_user_points_user_id ON user_points(user_id);
+CREATE INDEX idx_user_points_created_at ON user_points(created_at DESC);
+
+-- 포인트 지급/차감 시 사용자 포인트 자동 업데이트
+CREATE OR REPLACE FUNCTION update_user_points()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE users SET points = points + NEW.points WHERE id = NEW.user_id;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_user_points
+AFTER INSERT ON user_points
+FOR EACH ROW
+EXECUTE FUNCTION update_user_points();
+
+-- ==========================================
+-- 19. Contents (콘텐츠/에디터) 테이블
+-- ==========================================
+CREATE TABLE contents (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title VARCHAR(255) NOT NULL,
+  content_type VARCHAR(50) NOT NULL DEFAULT 'product', -- product, banner, post, etc.
+  reference_id VARCHAR(255), -- 연결된 상품/배너 ID (nullable)
+  blocks JSONB DEFAULT '[]'::jsonb, -- 에디터 블록 데이터
+  thumbnail_url TEXT, -- 대표 이미지
+  is_published BOOLEAN DEFAULT false,
+  created_by UUID REFERENCES users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_contents_content_type ON contents(content_type);
+CREATE INDEX idx_contents_reference_id ON contents(reference_id);
+CREATE INDEX idx_contents_created_by ON contents(created_by);
+CREATE INDEX idx_contents_is_published ON contents(is_published);
+
+CREATE TRIGGER update_contents_updated_at
+BEFORE UPDATE ON contents
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
 
 -- ==========================================
 -- 뷰 (View) 생성
