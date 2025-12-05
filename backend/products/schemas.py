@@ -13,6 +13,7 @@ class ProductBase(BaseModel):
     colors: List[str]
     sizes: List[str]
     image_url: str
+    images: List[str] = []  # 여러 상품 이미지 URL 배열
     stock_quantity: int = Field(0, ge=0)
     is_new: bool = False
     is_best: bool = False
@@ -47,6 +48,7 @@ class UpdateProductRequest(BaseModel):
     colors: Optional[List[str]] = None
     sizes: Optional[List[str]] = None
     image_url: Optional[str] = None
+    images: Optional[List[str]] = None  # 여러 상품 이미지 URL 배열
     stock_quantity: Optional[int] = Field(default=None, ge=0)
     is_new: Optional[bool] = None
     is_best: Optional[bool] = None

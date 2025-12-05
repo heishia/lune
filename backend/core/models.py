@@ -43,6 +43,7 @@ class Product(Base):
     colors: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False)
     sizes: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False)
     image_url: Mapped[str] = mapped_column(Text, nullable=False)
+    images: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=[])
     stock_quantity: Mapped[int] = mapped_column(Integer, default=0)
     is_new: Mapped[bool] = mapped_column(Boolean, default=False)
     is_best: Mapped[bool] = mapped_column(Boolean, default=False)

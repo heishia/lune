@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { Heart, ShoppingCart, ChevronLeft } from "lucide-react";
-import { getProduct, Product } from "../utils/api";
+import { Heart, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
+import { getProduct, getContentByReference, Product, Content, ContentBlock } from "../utils/api";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
 import { projectId, publicAnonKey } from "../utils/supabase/info";
@@ -21,6 +21,9 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [productContent, setProductContent] = useState<Content | null>(null);
+  const [contentLoading, setContentLoading] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -51,6 +54,26 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
       checkFavoriteStatus();
     }
   }, [productId, accessToken]);
+
+  // 상품 상세 콘텐츠 불러오기
+  useEffect(() => {
+    const fetchProductContent = async () => {
+      try {
+        setContentLoading(true);
+        const content = await getContentByReference("product", productId.toString());
+        setProductContent(content);
+      } catch (error) {
+        console.error("Failed to fetch product content:", error);
+        setProductContent(null);
+      } finally {
+        setContentLoading(false);
+      }
+    };
+
+    if (productId) {
+      fetchProductContent();
+    }
+  }, [productId]);
 
   const checkFavoriteStatus = async () => {
     try {
@@ -185,18 +208,86 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
       {/* Product Detail */}
       <div className="max-w-6xl mx-auto px-4 max-[500px]:px-3 py-12 max-[500px]:py-8">
         <div className="grid md:grid-cols-2 max-[500px]:flex max-[500px]:flex-col gap-12 max-[500px]:gap-8">
-          {/* Product Image */}
+          {/* Product Image Gallery */}
           <div className="relative">
-            <div className="aspect-[3/4] max-[500px]:aspect-[4/5] bg-brand-warm-taupe/10 rounded-lg overflow-hidden">
-              <ImageWithFallback
-                src={product.image_url}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
+            {(() => {
+              // images 배열이 있으면 사용, 없으면 image_url을 배열로
+              const images: string[] = (product as any).images?.length > 0 
+                ? (product as any).images 
+                : [product.image_url];
+              const currentImage = images[currentImageIndex] || product.image_url;
+
+              return (
+                <>
+                  <div className="aspect-[3/4] max-[500px]:aspect-[4/5] bg-brand-warm-taupe/10 rounded-lg overflow-hidden relative">
+                    <ImageWithFallback
+                      src={currentImage}
+                      alt={`${product.name} - ${currentImageIndex + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    
+                    {/* 이미지 네비게이션 버튼 */}
+                    {images.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1))}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-all"
+                        >
+                          <ChevronLeft className="w-6 h-6 text-brand-terra-cotta" />
+                        </button>
+                        <button
+                          onClick={() => setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1))}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-all"
+                        >
+                          <ChevronRight className="w-6 h-6 text-brand-terra-cotta" />
+                        </button>
+                        
+                        {/* 이미지 인디케이터 */}
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                          {images.map((_, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setCurrentImageIndex(idx)}
+                              className={`w-2 h-2 rounded-full transition-all ${
+                                idx === currentImageIndex 
+                                  ? "bg-brand-terra-cotta w-4" 
+                                  : "bg-white/70 hover:bg-white"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* 썸네일 이미지 리스트 */}
+                  {images.length > 1 && (
+                    <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
+                      {images.map((img, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setCurrentImageIndex(idx)}
+                          className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                            idx === currentImageIndex 
+                              ? "border-brand-terra-cotta" 
+                              : "border-transparent hover:border-brand-warm-taupe/50"
+                          }`}
+                        >
+                          <img
+                            src={img}
+                            alt={`${product.name} 썸네일 ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
 
             {/* Tags */}
-            <div className="absolute top-4 left-4 max-[500px]:top-2 max-[500px]:left-2 flex flex-col gap-2 max-[500px]:gap-1">
+            <div className="absolute top-4 left-4 max-[500px]:top-2 max-[500px]:left-2 flex flex-col gap-2 max-[500px]:gap-1 z-10">
               {product.is_new && (
                 <div className="bg-brand-terra-cotta text-brand-cream px-3 py-1 max-[500px]:px-2 max-[500px]:py-0.5 text-xs max-[500px]:text-[10px] tracking-wider">
                   NEW
@@ -370,6 +461,84 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
             </div>
           </div>
         </div>
+
+        {/* 상품 상세 설명 (에디터에서 작성한 콘텐츠) */}
+        {contentLoading ? (
+          <div className="mt-16 pt-8 border-t border-brand-warm-taupe/20">
+            <div className="text-center text-brand-warm-taupe">
+              상세 정보 불러오는 중...
+            </div>
+          </div>
+        ) : productContent && productContent.blocks && productContent.blocks.length > 0 ? (
+          <div className="mt-16 pt-8 border-t border-brand-warm-taupe/20">
+            <h2 className="text-lg tracking-wider text-brand-terra-cotta mb-8 text-center">
+              DETAIL
+            </h2>
+            <div className="max-w-3xl mx-auto">
+              {productContent.blocks.map((block: ContentBlock, index: number) => (
+                <div key={block.id || index} className="mb-6">
+                  {/* 텍스트 블록 */}
+                  {block.type === "text" && block.data?.text && (
+                    <div className="text-sm text-brand-warm-taupe leading-relaxed whitespace-pre-wrap">
+                      {block.data.text}
+                    </div>
+                  )}
+
+                  {/* 이미지 블록 */}
+                  {block.type === "image" && block.data?.url && (
+                    <div className="space-y-2">
+                      <img
+                        src={block.data.url}
+                        alt={block.data.caption || "상품 이미지"}
+                        className="w-full rounded-lg"
+                      />
+                      {block.data.caption && (
+                        <p className="text-xs text-brand-warm-taupe text-center">
+                          {block.data.caption}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 동영상 블록 */}
+                  {block.type === "video" && block.data?.url && (
+                    <div className="space-y-2">
+                      <video
+                        src={block.data.url}
+                        controls
+                        className="w-full rounded-lg"
+                      />
+                      {block.data.caption && (
+                        <p className="text-xs text-brand-warm-taupe text-center">
+                          {block.data.caption}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 구분선 블록 */}
+                  {block.type === "divider" && (
+                    <hr className="my-8 border-brand-warm-taupe/30" />
+                  )}
+
+                  {/* 인용구 블록 */}
+                  {block.type === "quote" && block.data?.text && (
+                    <div className="border-l-4 border-brand-terra-cotta/50 pl-4 py-2 bg-brand-cream/30 rounded-r">
+                      <p className="text-base italic text-brand-warm-taupe">
+                        {block.data.text}
+                      </p>
+                      {block.data.author && (
+                        <p className="text-sm text-brand-warm-taupe/70 mt-2">
+                          - {block.data.author}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, LogOut, Image as ImageIcon, Instagram, Package, Calendar, Gift, Megaphone, MessageSquare, FileText } from "lucide-react";
+import { Plus, Edit, Trash2, LogOut, Image as ImageIcon, Instagram, Package, Calendar, Gift, Megaphone, MessageSquare, FileText, Upload, Eye } from "lucide-react";
 import logo from "figma:asset/e95f335bacb8348ed117f587f5d360e078bf26b6.png";
 import { projectId, publicAnonKey } from "../utils/supabase/info";
 import { InstagramSettings } from "./InstagramSettings";
@@ -24,6 +24,8 @@ import {
   sendKakaoMessage, 
   getAdminOrders,
   updateOrderStatus,
+  getContentByReference,
+  uploadImage,
   type MarketingUser,
   type AdminOrder,
   type Content,
@@ -95,6 +97,11 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [showEditor, setShowEditor] = useState(false);
   const [editorProductId, setEditorProductId] = useState<number | null>(null);
   const [editorProductName, setEditorProductName] = useState("");
+  const [editorContentId, setEditorContentId] = useState<string | null>(null);
+  const [hasProductContent, setHasProductContent] = useState(false);
+  const [checkingContent, setCheckingContent] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // 폼 상태
   const [formData, setFormData] = useState({
@@ -106,6 +113,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
     colors: "",
     sizes: [] as string[],
     image_url: "",
+    images: [] as string[],  // 여러 이미지 URL 배열
     stock_quantity: 0,
     is_new: false,
     is_best: false,
@@ -207,9 +215,11 @@ export function AdminPage({ onBack }: AdminPageProps) {
   };
 
   // 상품 추가/수정 다이얼로그 열기
-  const handleOpenDialog = (product?: Product) => {
+  const handleOpenDialog = async (product?: Product) => {
     if (product) {
       setEditingProduct(product);
+      // images 배열이 있으면 사용, 없으면 image_url을 배열로 변환
+      const productImages = (product as any).images || (product.image_url ? [product.image_url] : []);
       setFormData({
         name: product.name,
         description: product.description,
@@ -219,10 +229,13 @@ export function AdminPage({ onBack }: AdminPageProps) {
         colors: product.colors.join(", "),
         sizes: product.sizes,
         image_url: product.image_url,
+        images: productImages,
         stock_quantity: product.stock_quantity,
         is_new: product.is_new,
         is_best: product.is_best,
       });
+      // 해당 상품에 연결된 콘텐츠가 있는지 확인
+      checkProductContent(product.id);
     } else {
       setEditingProduct(null);
       setFormData({
@@ -234,28 +247,91 @@ export function AdminPage({ onBack }: AdminPageProps) {
         colors: "",
         sizes: [],
         image_url: "",
+        images: [],
         stock_quantity: 0,
         is_new: false,
         is_best: false,
       });
+      setHasProductContent(false);
+      setEditorContentId(null);
     }
     setIsDialogOpen(true);
+  };
+
+  // 상품에 연결된 콘텐츠 확인
+  const checkProductContent = async (productId: number) => {
+    try {
+      setCheckingContent(true);
+      const content = await getContentByReference("product", productId.toString());
+      if (content) {
+        setHasProductContent(true);
+        setEditorContentId(content.id);
+      } else {
+        setHasProductContent(false);
+        setEditorContentId(null);
+      }
+    } catch (error) {
+      setHasProductContent(false);
+      setEditorContentId(null);
+    } finally {
+      setCheckingContent(false);
+    }
+  };
+
+  // 상품 이미지 업로드 핸들러 (여러 이미지 추가)
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    try {
+      setUploadingImage(true);
+      toast.info("이미지 업로드 중...");
+      
+      const uploadPromises = Array.from(files).map((file) => uploadImage(file));
+      const results = await Promise.all(uploadPromises);
+      const newUrls = results.map((r) => r.url);
+      
+      setFormData((prev) => {
+        const updatedImages = [...prev.images, ...newUrls];
+        // 첫 번째 이미지를 대표 이미지로 설정 (대표 이미지가 없는 경우)
+        const mainImage = prev.image_url || updatedImages[0] || "";
+        return { ...prev, images: updatedImages, image_url: mainImage };
+      });
+      toast.success(`${newUrls.length}개의 이미지가 업로드되었습니다.`);
+    } catch (error: any) {
+      toast.error(error.message || "이미지 업로드에 실패했습니다.");
+    } finally {
+      setUploadingImage(false);
+      if (imageInputRef.current) {
+        imageInputRef.current.value = "";
+      }
+    }
+  };
+
+  // 대표 이미지로 설정
+  const setAsMainImage = (imageUrl: string) => {
+    setFormData((prev) => ({ ...prev, image_url: imageUrl }));
+    toast.success("대표 이미지로 설정되었습니다.");
+  };
+
+  // 이미지 삭제
+  const removeImage = (imageUrl: string) => {
+    setFormData((prev) => {
+      const updatedImages = prev.images.filter((img) => img !== imageUrl);
+      // 삭제된 이미지가 대표 이미지였다면 첫 번째 이미지로 변경
+      const newMainImage = prev.image_url === imageUrl 
+        ? (updatedImages[0] || "") 
+        : prev.image_url;
+      return { ...prev, images: updatedImages, image_url: newMainImage };
+    });
   };
 
   // 상품 저장 (추가 또는 수정)
   const handleSaveProduct = async () => {
     try {
-      // 유효성 검사
-      if (!formData.name || !formData.description || formData.price <= 0) {
-        toast.error("필수 정보를 모두 입력해주세요");
-        return;
-      }
-
-      if (formData.category.length === 0) {
-        toast.error("카테고리를 최소 1개 선택해주세요");
-        return;
-      }
-
+      // 대표 이미지가 없으면 첫 번째 이미지 사용
+      const mainImage = formData.image_url || formData.images[0] || "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=800";
+      
       const productData = {
         name: formData.name,
         description: formData.description,
@@ -264,7 +340,8 @@ export function AdminPage({ onBack }: AdminPageProps) {
         category: formData.category,
         colors: formData.colors.split(",").map((c) => c.trim()).filter((c) => c),
         sizes: formData.sizes,
-        image_url: formData.image_url || "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=800",
+        image_url: mainImage,
+        images: formData.images.length > 0 ? formData.images : [mainImage],
         stock_quantity: formData.stock_quantity,
         is_new: formData.is_new,
         is_best: formData.is_best,
@@ -287,15 +364,17 @@ export function AdminPage({ onBack }: AdminPageProps) {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to save product");
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.detail || errorData.message || `HTTP ${response.status}`;
+        throw new Error(errorMessage);
       }
 
       toast.success(editingProduct ? "상품이 수정되었습니다" : "상품이 등록되었습니다");
       setIsDialogOpen(false);
       fetchProducts();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving product:", error);
-      toast.error("상품 저장에 실패했습니다");
+      toast.error(`상품 저장에 실패했습니다: ${error.message || "알 수 없는 오류"}`);
     }
   };
 
@@ -454,17 +533,29 @@ export function AdminPage({ onBack }: AdminPageProps) {
   if (showEditor) {
     return (
       <EditorPage
+        contentId={editorContentId || undefined}
         contentType="product"
         referenceId={editorProductId?.toString()}
         initialTitle={`${editorProductName} 상세 설명`}
         onSave={(content) => {
           toast.success("상세 설명이 저장되었습니다");
           setShowEditor(false);
+          // 저장 후 콘텐츠 상태 업데이트
+          setHasProductContent(true);
+          setEditorContentId(content.id);
+          // 모달 다시 열기
+          if (editorProductId) {
+            setIsDialogOpen(true);
+          }
           setEditorProductId(null);
         }}
         onBack={() => {
           setShowEditor(false);
           setEditorProductId(null);
+          // 모달 다시 열기
+          if (editingProduct) {
+            setIsDialogOpen(true);
+          }
         }}
       />
     );
@@ -719,7 +810,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
                       <TableCell>
                         <Select 
                           value={orderStatusChanges[order.id] || order.status}
-                          onValueChange={(value) => setOrderStatusChanges((prev) => ({ ...prev, [order.id]: value }))}
+                          onValueChange={(value: string) => setOrderStatusChanges((prev) => ({ ...prev, [order.id]: value }))}
                         >
                           <SelectTrigger className="h-9 text-xs border-brand-warm-taupe/30">
                             <SelectValue>{getStatusLabel(orderStatusChanges[order.id] || order.status)}</SelectValue>
@@ -963,19 +1054,19 @@ export function AdminPage({ onBack }: AdminPageProps) {
             {/* 판매 가격 */}
             <div className="space-y-2">
               <Label htmlFor="price" className="text-brand-terra-cotta">
-                판매 가격 *
+                판매 가격
               </Label>
               <Input
                 id="price"
                 type="number"
-                value={formData.price}
+                value={formData.price || ""}
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
-                    price: parseInt(e.target.value) || 0,
+                    price: e.target.value === "" ? 0 : parseInt(e.target.value),
                   }))
                 }
-                placeholder="0"
+                placeholder="가격을 입력하세요"
                 className="border-brand-warm-taupe/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
             </div>
@@ -1000,25 +1091,130 @@ export function AdminPage({ onBack }: AdminPageProps) {
               />
             </div>
 
+            {/* 상품 이미지 */}
+            <div className="space-y-2">
+              <Label className="text-brand-terra-cotta">상품 이미지</Label>
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                multiple
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 border-brand-warm-taupe/30 text-brand-terra-cotta hover:bg-brand-terra-cotta hover:text-white"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={uploadingImage}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {uploadingImage ? "업로드 중..." : "이미지 추가"}
+                </Button>
+              </div>
+              
+              {/* 이미지 그리드 */}
+              {formData.images.length > 0 && (
+                <div className="mt-3 grid grid-cols-4 gap-2">
+                  {formData.images.map((imageUrl, index) => (
+                    <div 
+                      key={index} 
+                      className={`relative group aspect-square rounded-lg overflow-hidden border-2 ${
+                        formData.image_url === imageUrl 
+                          ? "border-brand-terra-cotta" 
+                          : "border-brand-warm-taupe/30"
+                      }`}
+                    >
+                      <img
+                        src={imageUrl}
+                        alt={`상품 이미지 ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      {/* 대표 이미지 표시 */}
+                      {formData.image_url === imageUrl && (
+                        <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-brand-terra-cotta text-white text-[10px] rounded">
+                          대표
+                        </div>
+                      )}
+                      {/* 호버 시 액션 버튼 */}
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                        {formData.image_url !== imageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setAsMainImage(imageUrl)}
+                            className="p-1.5 bg-white text-brand-terra-cotta rounded hover:bg-brand-cream"
+                            title="대표 이미지로 설정"
+                          >
+                            <ImageIcon className="w-3 h-3" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeImage(imageUrl)}
+                          className="p-1.5 bg-red-500 text-white rounded hover:bg-red-600"
+                          title="이미지 삭제"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-brand-warm-taupe">
+                여러 이미지를 업로드하고, 클릭하여 대표 이미지를 지정하세요. 대표 이미지는 썸네일과 첫 번째로 표시됩니다.
+              </p>
+            </div>
+
             {/* 에디터로 편집하기 버튼 */}
             <div className="space-y-2">
-              <Label className="text-brand-terra-cotta">상세 설명 및 이미지</Label>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full border-brand-terra-cotta text-brand-terra-cotta hover:bg-brand-terra-cotta hover:text-white"
-                onClick={() => {
-                  setEditorProductId(editingProduct?.id || null);
-                  setEditorProductName(formData.name || "새 상품");
-                  setIsDialogOpen(false);
-                  setShowEditor(true);
-                }}
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                에디터로 편집하기
-              </Button>
+              <Label className="text-brand-terra-cotta">상세 설명</Label>
+              {checkingContent ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-brand-warm-taupe/30"
+                  disabled
+                >
+                  확인 중...
+                </Button>
+              ) : hasProductContent && editingProduct ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
+                  onClick={() => {
+                    setEditorProductId(editingProduct.id);
+                    setEditorProductName(formData.name || "상품");
+                    setIsDialogOpen(false);
+                    setShowEditor(true);
+                  }}
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  상세 설명 보기/수정
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-brand-terra-cotta text-brand-terra-cotta hover:bg-brand-terra-cotta hover:text-white"
+                  onClick={() => {
+                    setEditorProductId(editingProduct?.id || null);
+                    setEditorProductName(formData.name || "새 상품");
+                    setIsDialogOpen(false);
+                    setShowEditor(true);
+                  }}
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  상세 설명 생성하기
+                </Button>
+              )}
               <p className="text-xs text-brand-warm-taupe">
-                상품 상세 페이지에 표시될 이미지와 설명을 에디터에서 작성합니다
+                {hasProductContent && editingProduct
+                  ? "저장된 상세 설명이 있습니다. 클릭하여 보거나 수정하세요."
+                  : "상품 상세 페이지에 표시될 설명을 에디터에서 작성합니다"}
               </p>
             </div>
 
@@ -1108,7 +1304,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
               <label className="flex items-center gap-2 cursor-pointer">
                 <Checkbox
                   checked={formData.is_new}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked: boolean | "indeterminate") =>
                     setFormData((prev) => ({ ...prev, is_new: !!checked }))
                   }
                 />
@@ -1117,7 +1313,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
               <label className="flex items-center gap-2 cursor-pointer">
                 <Checkbox
                   checked={formData.is_best}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked: boolean | "indeterminate") =>
                     setFormData((prev) => ({ ...prev, is_best: !!checked }))
                   }
                 />

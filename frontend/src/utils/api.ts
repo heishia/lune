@@ -1,6 +1,7 @@
 import { projectId, publicAnonKey } from './supabase/info';
 
-// 개발 환경에서는 로컬 백엔드 사용, 프로덕션에서는 Supabase Edge Function 사용
+// 개발: 로컬 백엔드, 프로덕션: Supabase Edge Function
+// Edge Function에 500 에러가 있으므로 일단 로컬 백엔드 사용
 const API_BASE_URL = import.meta.env.DEV 
   ? 'http://localhost:8000'
   : `https://${projectId}.supabase.co/functions/v1/make-server-8ed17d84`;
@@ -39,13 +40,17 @@ export function removeUserInfo(): void {
 // API 요청 헬퍼
 async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  useAnonKey: boolean = false
 ): Promise<T> {
   const token = getToken();
   
+  // 토큰이 있고 useAnonKey가 false면 토큰 사용, 아니면 publicAnonKey 사용
+  const authToken = (!useAnonKey && token) ? token : publicAnonKey;
+  
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : `Bearer ${publicAnonKey}`,
+    'Authorization': `Bearer ${authToken}`,
     ...options.headers,
   };
 
@@ -54,9 +59,17 @@ async function apiRequest<T>(
     headers,
   });
 
+  // 401 에러이고 토큰을 사용했다면, 토큰 제거 후 publicAnonKey로 재시도
+  if (response.status === 401 && token && !useAnonKey) {
+    console.warn('Token expired or invalid, retrying with anon key...');
+    removeToken();
+    removeUserInfo();
+    return apiRequest<T>(endpoint, options, true);
+  }
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `API Error: ${response.status}`);
+    throw new Error(error.detail || error.error || error.message || `API Error: ${response.status}`);
   }
 
   return response.json();

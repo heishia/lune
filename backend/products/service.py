@@ -59,6 +59,7 @@ def create_product(db: Session, payload: schemas.CreateProductRequest) -> models
         colors=payload.colors,
         sizes=payload.sizes,
         image_url=payload.image_url,
+        images=payload.images or [],
         stock_quantity=payload.stock_quantity,
         is_new=payload.is_new,
         is_best=payload.is_best,

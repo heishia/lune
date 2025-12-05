@@ -18,7 +18,8 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  X
+  X,
+  GripVertical
 } from "lucide-react";
 import { 
   createContent, 
@@ -58,6 +59,8 @@ export function EditorPage({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
+  const [dragOverBlockId, setDragOverBlockId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -181,13 +184,58 @@ export function EditorPage({
     setMediaBlocks(mediaBlocks.filter((b) => b.id !== blockId));
   };
 
-  // 저장
-  const handleSave = async (publish: boolean = false) => {
-    if (!title.trim()) {
-      toast.error("제목을 입력해주세요");
+  // 드래그 앤 드롭 핸들러
+  const handleDragStart = (e: React.DragEvent, blockId: string) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", blockId);
+    setDraggedBlockId(blockId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, blockId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (blockId !== draggedBlockId) {
+      setDragOverBlockId(blockId);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverBlockId(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetBlockId: string) => {
+    e.preventDefault();
+    if (!draggedBlockId || draggedBlockId === targetBlockId) {
+      setDraggedBlockId(null);
+      setDragOverBlockId(null);
       return;
     }
 
+    const draggedIndex = mediaBlocks.findIndex((b) => b.id === draggedBlockId);
+    const targetIndex = mediaBlocks.findIndex((b) => b.id === targetBlockId);
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedBlockId(null);
+      setDragOverBlockId(null);
+      return;
+    }
+
+    const newBlocks = [...mediaBlocks];
+    const [draggedBlock] = newBlocks.splice(draggedIndex, 1);
+    newBlocks.splice(targetIndex, 0, draggedBlock);
+    setMediaBlocks(newBlocks);
+
+    setDraggedBlockId(null);
+    setDragOverBlockId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedBlockId(null);
+    setDragOverBlockId(null);
+  };
+
+  // 저장
+  const handleSave = async (publish: boolean = false) => {
     try {
       setSaving(true);
       
@@ -242,13 +290,32 @@ export function EditorPage({
   };
 
   // 미디어 블록 렌더링
-  const renderMediaBlock = (block: ContentBlock) => {
+  const renderMediaBlock = (block: ContentBlock, index: number) => {
+    const isDragging = draggedBlockId === block.id;
+    const isDragOver = dragOverBlockId === block.id;
+
     return (
       <div 
         key={block.id} 
-        className="group relative my-4"
+        className={`group relative my-2 transition-all duration-200 ${
+          isDragging ? "opacity-50" : ""
+        } ${isDragOver ? "border-t-2 border-blue-400" : ""}`}
+        draggable
+        onDragStart={(e) => handleDragStart(e, block.id)}
+        onDragOver={(e) => handleDragOver(e, block.id)}
+        onDragLeave={handleDragLeave}
+        onDrop={(e) => handleDrop(e, block.id)}
+        onDragEnd={handleDragEnd}
       >
-        {/* 블록 삭제 버튼 */}
+        {/* 드래그 핸들 & 삭제 버튼 */}
+        <div className="absolute -left-10 top-2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1">
+          <button
+            className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+        </div>
         <div className="absolute -right-8 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={() => deleteMediaBlock(block.id)}
@@ -265,7 +332,9 @@ export function EditorPage({
               <img 
                 src={block.data.url} 
                 alt={block.data.caption || "이미지"} 
-                className="max-w-full rounded-lg"
+                className="max-w-full rounded-lg select-none"
+                draggable={false}
+                onDragStart={(e) => e.preventDefault()}
               />
             </div>
             <Input
@@ -285,6 +354,7 @@ export function EditorPage({
                 src={block.data.url}
                 controls
                 className="max-w-full rounded-lg"
+                draggable={false}
               />
             </div>
             <Input
@@ -431,21 +501,9 @@ export function EditorPage({
       </div>
 
       {/* 에디터 영역 */}
-      <main className="flex-1 bg-[#f5f5f5]">
+      <main className="flex-1 bg-white">
         {/* 메인 편집 영역 */}
         <div className="max-w-4xl mx-auto bg-white min-h-[calc(100vh-148px)] px-8 md:px-12 lg:px-16 py-10 shadow-sm">
-          {/* 제목 입력 */}
-          <div className="mb-8">
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="제목"
-              className="text-3xl font-bold border-0 focus:ring-0 p-0 placeholder:text-gray-300 bg-transparent"
-              style={{ boxShadow: 'none' }}
-            />
-            <div className="h-px bg-gray-200 mt-4" />
-          </div>
-
           {/* 메인 텍스트 입력 영역 */}
           <div className="flex-1">
             <textarea
@@ -459,8 +517,8 @@ export function EditorPage({
 
           {/* 미디어 블록 영역 */}
           {mediaBlocks.length > 0 && (
-            <div className="mt-6 border-t border-gray-100 pt-6">
-              {mediaBlocks.map((block) => renderMediaBlock(block))}
+            <div className="mt-4">
+              {mediaBlocks.map((block, index) => renderMediaBlock(block, index))}
             </div>
           )}
         </div>
