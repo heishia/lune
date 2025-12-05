@@ -47,8 +47,9 @@ app = FastAPI(
 )
 
 # CORS 설정 (다른 미들웨어보다 먼저 추가되어야 함)
-# 개발 환경에서는 일반적인 개발 포트들을 모두 허용
+# 개발 환경 포트 + 프로덕션 도메인
 cors_origins = [
+    # Development
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:5173",  # Vite 기본 포트
@@ -57,6 +58,9 @@ cors_origins = [
     "http://127.0.0.1:5174",
     "http://localhost:8080",
     "http://127.0.0.1:8080",
+    # Production
+    "https://masionlune.com",
+    "https://www.masionlune.com",
 ]
 
 app.add_middleware(

@@ -1,10 +1,8 @@
-import { projectId, publicAnonKey } from './supabase/info';
+import { publicAnonKey } from './supabase/info';
 
-// 개발: 로컬 백엔드, 프로덕션: Supabase Edge Function
-// Edge Function에 500 에러가 있으므로 일단 로컬 백엔드 사용
-const API_BASE_URL = import.meta.env.DEV 
-  ? 'http://localhost:8000'
-  : `https://${projectId}.supabase.co/functions/v1/make-server-8ed17d84`;
+// 환경변수에서 API URL을 가져오거나 기본값으로 localhost 사용
+// Vercel 배포 시 VITE_API_URL 환경변수에 Railway 백엔드 URL 설정 필요
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // 로컬 스토리지에서 토큰 가져오기
 export function getToken(): string | null {

@@ -1,0 +1,30 @@
+# Frontend - Vercel에서 별도 배포
+frontend/
+node_modules/
+
+# Documentation
+docs/
+*.md
+
+# Database scripts (not needed at runtime)
+database/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+.cursor/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Environment files (Railway에서 환경변수로 설정)
+.env
+.env.*
+
