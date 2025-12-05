@@ -763,3 +763,56 @@ export async function deleteContent(contentId: string): Promise<{ success: boole
     method: 'DELETE',
   });
 }
+
+// =============================================================================
+// 파일 업로드 API
+// =============================================================================
+
+export interface UploadResponse {
+  url: string;
+  filename: string;
+  content_type: string;
+  size: number;
+}
+
+export async function uploadImage(file: File): Promise<UploadResponse> {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE_URL}/uploads/image`, {
+    method: 'POST',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : `Bearer ${publicAnonKey}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || error.error || '이미지 업로드에 실패했습니다.');
+  }
+
+  return response.json();
+}
+
+export async function uploadVideo(file: File): Promise<UploadResponse> {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE_URL}/uploads/video`, {
+    method: 'POST',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : `Bearer ${publicAnonKey}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || error.error || '동영상 업로드에 실패했습니다.');
+  }
+
+  return response.json();
+}

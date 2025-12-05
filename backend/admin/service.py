@@ -168,4 +168,3 @@ def get_point_history(
     history = query.limit(100).all()
     
     return history, total
-

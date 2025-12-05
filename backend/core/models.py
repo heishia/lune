@@ -91,6 +91,19 @@ class Order(Base):
 
     payment_method: Mapped[str] = mapped_column(String(50), nullable=False)
     payment_status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
+    payment_key: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    paid_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    # 배송 정보
+    tracking_number: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    courier: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    shipped_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    delivered_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    # 취소/환불 정보
+    cancelled_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    cancel_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    refunded_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

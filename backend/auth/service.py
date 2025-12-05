@@ -129,4 +129,3 @@ def get_user_by_id(db: Session, user_id: str) -> models.User:
         raise NotFoundError("사용자를 찾을 수 없습니다.")
     return user
 
-

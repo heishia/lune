@@ -24,6 +24,9 @@ class Settings(BaseSettings):
 
     database_url: str = Field(..., description="PostgreSQL 접속 URL (Supabase)")
 
+    supabase_url: str = Field("", description="Supabase 프로젝트 URL")
+    supabase_service_key: str = Field("", description="Supabase Service Role Key")
+
     jwt_secret_key: str = Field(..., validation_alias="JWT_SECRET", description="JWT 서명용 시크릿 키")
     jwt_algorithm: str = Field("HS256", description="JWT 서명 알고리즘")
     access_token_expire_minutes: int = Field(
