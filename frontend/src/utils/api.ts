@@ -415,17 +415,23 @@ export interface KakaoSettings {
   auth_url?: string;
 }
 
-// 카카오 소셜 로그인 응답
+// 카카오 소셜 로그인 응답 (카카오싱크)
 export interface KakaoLoginResponse {
   success: boolean;
   user: {
     id: string;
     email: string;
     name: string;
+    phone?: string;
+    postal_code?: string;
+    address?: string;
+    address_detail?: string;
     is_admin?: boolean;
+    is_profile_complete?: boolean;  // 필수 정보 입력 완료 여부
   };
   token: string;
   refresh_token: string;
+  is_new_user?: boolean;  // 신규 가입 여부
 }
 
 // 카카오 로그인 URL 가져오기

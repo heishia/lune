@@ -18,6 +18,16 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     phone: Mapped[str] = mapped_column(String(20), nullable=False)
+    
+    # 주소 정보 (카카오싱크 배송지 연동)
+    postal_code: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    address: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    address_detail: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    
+    # 소셜 로그인 정보
+    social_provider: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # kakao, google, naver
+    social_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)  # 소셜 플랫폼의 사용자 ID
+    
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -26,6 +36,9 @@ class User(Base):
     is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     marketing_agreed: Mapped[bool] = mapped_column(Boolean, default=False)
     points: Mapped[int] = mapped_column(Integer, default=0)
+    
+    # 프로필 완성 여부 (필수 정보 입력 완료)
+    is_profile_complete: Mapped[bool] = mapped_column(Boolean, default=False)
 
     orders: Mapped[List["Order"]] = relationship(back_populates="user")
     user_coupons: Mapped[List["UserCoupon"]] = relationship(back_populates="user")

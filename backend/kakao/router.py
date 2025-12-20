@@ -89,8 +89,8 @@ async def kakao_social_login(
     payload: schemas.KakaoLoginRequest,
     db: Session = Depends(get_db),
 ) -> schemas.KakaoLoginResponse:
-    """카카오 소셜 로그인 - 인가 코드로 로그인 처리"""
-    user, access_token, refresh_token = await service.kakao_login(
+    """카카오 소셜 로그인 - 인가 코드로 로그인 처리 (카카오싱크)"""
+    user, access_token, refresh_token, is_new_user = await service.kakao_login(
         db=db,
         code=payload.code,
         redirect_uri=payload.redirect_uri,
@@ -101,10 +101,16 @@ async def kakao_social_login(
             id=str(user.id),
             email=user.email,
             name=user.name,
+            phone=user.phone or "",
+            postal_code=user.postal_code or "",
+            address=user.address or "",
+            address_detail=user.address_detail or "",
             is_admin=user.is_admin,
+            is_profile_complete=user.is_profile_complete,
         ),
         token=access_token,
         refresh_token=refresh_token,
+        is_new_user=is_new_user,
     )
 
 

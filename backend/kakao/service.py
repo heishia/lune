@@ -100,7 +100,7 @@ def get_kakao_auth_url(redirect_uri: str, for_login: bool = False) -> str:
     
     Args:
         redirect_uri: 리다이렉트 URI
-        for_login: 로그인용이면 True (이메일 스코프 포함)
+        for_login: 로그인용이면 True (카카오싱크 동의항목 포함)
         
     Returns:
         인가 코드 요청 URL
@@ -111,9 +111,15 @@ def get_kakao_auth_url(redirect_uri: str, for_login: bool = False) -> str:
     if not rest_api_key:
         raise ValueError("카카오톡 REST API 키가 설정되지 않았습니다.")
     
-    # 로그인용 스코프: 이메일, 프로필
+    # 로그인용 스코프: 카카오싱크 동의항목 (이름, 이메일, 전화번호, 배송지)
     if for_login:
-        scopes = ["account_email", "profile_nickname"]
+        scopes = [
+            "account_email",       # 카카오계정 이메일
+            "profile_nickname",    # 닉네임
+            "name",                # 실명 (카카오싱크)
+            "phone_number",        # 전화번호 (카카오싱크)
+            "shipping_address",    # 배송지 정보 (카카오싱크)
+        ]
     else:
         # 메시지 전송용 스코프
         scopes = ["friends", "talk_message"]
@@ -123,7 +129,7 @@ def get_kakao_auth_url(redirect_uri: str, for_login: bool = False) -> str:
         f"?client_id={rest_api_key}"
         f"&redirect_uri={redirect_uri}"
         f"&response_type=code"
-        f"&scope={' '.join(scopes)}"
+        f"&scope={','.join(scopes)}"
     )
     
     return auth_url
@@ -154,9 +160,9 @@ async def get_kakao_user_info(access_token: str) -> dict:
             raise UnauthorizedError(f"카카오 사용자 정보 조회 실패: {error_msg}")
 
 
-async def kakao_login(db: Session, code: str, redirect_uri: str) -> tuple[models.User, str, str]:
+async def kakao_login(db: Session, code: str, redirect_uri: str) -> tuple[models.User, str, str, bool]:
     """
-    카카오 로그인 처리
+    카카오 로그인 처리 (카카오싱크 - 이름, 전화번호, 배송지 동의항목 포함)
     
     Args:
         db: 데이터베이스 세션
@@ -164,7 +170,7 @@ async def kakao_login(db: Session, code: str, redirect_uri: str) -> tuple[models
         redirect_uri: 리다이렉트 URI
         
     Returns:
-        (user, access_token, refresh_token)
+        (user, access_token, refresh_token, is_new_user)
     """
     # 1. 인가 코드로 카카오 토큰 발급
     token_data = await get_kakao_token_from_code(code, redirect_uri)
@@ -180,24 +186,78 @@ async def kakao_login(db: Session, code: str, redirect_uri: str) -> tuple[models
     kakao_account = kakao_user.get("kakao_account", {})
     profile = kakao_account.get("profile", {})
     
+    # 카카오싱크 동의항목에서 정보 추출
     email = kakao_account.get("email", f"kakao_{kakao_id}@kakao.local")
-    name = profile.get("nickname", f"카카오사용자{kakao_id[:4]}")
     
-    # 3. 기존 사용자 확인 또는 생성
-    # 먼저 이메일로 검색
-    user = db.query(models.User).filter(models.User.email == email).first()
+    # 실명 (카카오싱크) - 없으면 닉네임 사용
+    name = kakao_account.get("name") or profile.get("nickname", f"kakao_{kakao_id[:4]}")
+    
+    # 전화번호 (카카오싱크) - 형식: +82 10-1234-5678 -> 010-1234-5678
+    phone_number = kakao_account.get("phone_number", "")
+    if phone_number:
+        # +82 10-1234-5678 형식을 010-1234-5678로 변환
+        phone_number = phone_number.replace("+82 ", "0").replace(" ", "")
+    
+    # 배송지 정보 (카카오싱크)
+    shipping_address = kakao_account.get("shipping_address", {})
+    # 기본 배송지가 있으면 사용
+    default_address = None
+    if shipping_address and shipping_address.get("shipping_addresses"):
+        addresses = shipping_address.get("shipping_addresses", [])
+        # is_default가 true인 주소 찾기, 없으면 첫 번째 주소
+        default_address = next(
+            (addr for addr in addresses if addr.get("is_default")),
+            addresses[0] if addresses else None
+        )
+    
+    postal_code = ""
+    address = ""
+    address_detail = ""
+    
+    if default_address:
+        postal_code = default_address.get("zone_number", "")  # 우편번호
+        address = default_address.get("base_address", "")  # 기본 주소
+        address_detail = default_address.get("detail_address", "")  # 상세 주소
+        # 배송지의 전화번호가 더 정확할 수 있음
+        if not phone_number and default_address.get("receiver_phone_number1"):
+            phone_number = default_address.get("receiver_phone_number1", "")
+    
+    # 3. 기존 사용자 확인 (소셜 ID 또는 이메일로)
+    is_new_user = False
+    
+    # 먼저 소셜 ID로 검색
+    user = db.query(models.User).filter(
+        models.User.social_provider == "kakao",
+        models.User.social_id == kakao_id
+    ).first()
+    
+    # 소셜 ID로 없으면 이메일로 검색
+    if not user:
+        user = db.query(models.User).filter(models.User.email == email).first()
     
     if not user:
-        # 새 사용자 생성 (소셜 로그인 사용자)
+        # 새 사용자 생성 (카카오싱크 사용자)
+        is_new_user = True
+        
+        # 필수 정보 완성 여부 확인
+        is_profile_complete = bool(name and phone_number)
+        
         user = models.User(
             id=str(uuid4()),
             email=email,
             name=name,
             password_hash="",  # 소셜 로그인은 비밀번호 없음
-            phone="",  # 나중에 프로필에서 입력
+            phone=phone_number,
+            postal_code=postal_code,
+            address=address,
+            address_detail=address_detail,
+            social_provider="kakao",
+            social_id=kakao_id,
             marketing_agreed=False,
             is_active=True,
             is_admin=False,
+            is_email_verified=True,  # 카카오 인증된 이메일
+            is_profile_complete=is_profile_complete,
             points=0,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
@@ -206,8 +266,27 @@ async def kakao_login(db: Session, code: str, redirect_uri: str) -> tuple[models
         db.commit()
         db.refresh(user)
     else:
-        # 기존 사용자 마지막 로그인 시간 업데이트
+        # 기존 사용자 정보 업데이트
         user.last_login = datetime.utcnow()
+        
+        # 소셜 정보가 없으면 업데이트
+        if not user.social_provider:
+            user.social_provider = "kakao"
+            user.social_id = kakao_id
+        
+        # 카카오에서 받은 정보로 빈 필드 업데이트
+        if not user.phone and phone_number:
+            user.phone = phone_number
+        if not user.postal_code and postal_code:
+            user.postal_code = postal_code
+        if not user.address and address:
+            user.address = address
+        if not user.address_detail and address_detail:
+            user.address_detail = address_detail
+        
+        # 프로필 완성 여부 재확인
+        user.is_profile_complete = bool(user.name and user.phone)
+        
         db.commit()
         db.refresh(user)
     
@@ -218,11 +297,12 @@ async def kakao_login(db: Session, code: str, redirect_uri: str) -> tuple[models
             "email": user.email,
             "name": user.name,
             "is_admin": user.is_admin,
+            "is_profile_complete": user.is_profile_complete,
         },
     )
     refresh_token = create_refresh_token(subject=str(user.id))
     
-    return user, access_token, refresh_token
+    return user, access_token, refresh_token, is_new_user
 
 
 def get_marketing_users(db: Session) -> list[models.User]:

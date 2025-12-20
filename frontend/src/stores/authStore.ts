@@ -7,7 +7,12 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  phone?: string;
+  postal_code?: string;
+  address?: string;
+  address_detail?: string;
   is_admin?: boolean;
+  is_profile_complete?: boolean;  // 필수 정보 입력 완료 여부
 }
 
 // 인증 상태 타입
