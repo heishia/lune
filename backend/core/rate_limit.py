@@ -3,6 +3,8 @@
 API 요청 속도 제한을 구현합니다.
 Redis를 사용한 분산 환경에서의 속도 제한을 지원합니다.
 """
+import warnings
+
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -61,11 +63,15 @@ def get_rate_limit_key(request: Request) -> str:
 storage_uri = settings.redis_url if settings.redis_url else "memory://"
 
 # Limiter 인스턴스 생성
+# config_filename: 존재하지 않는 파일 지정으로 .env 자동 로딩 비활성화 (Windows cp949 인코딩 오류 방지)
+# starlette Config의 "file not found" 경고 무시
+warnings.filterwarnings("ignore", message="Config file.*not found")
 limiter = Limiter(
     key_func=get_rate_limit_key,
     storage_uri=storage_uri,
     strategy="fixed-window",  # 또는 "moving-window"
     default_limits=["200/minute"],  # 기본 제한: 분당 200회
+    config_filename=".env.nonexistent",
 )
 
 logger.info("Rate Limiter 초기화: storage=%s", 
