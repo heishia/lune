@@ -1,4 +1,5 @@
 from typing import Generator
+from contextlib import contextmanager
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -49,6 +50,50 @@ def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
         yield db
+    finally:
+        db.close()
+
+
+@contextmanager
+def transaction(db: Session):
+    """트랜잭션 컨텍스트 매니저
+    
+    사용 예:
+        with transaction(db):
+            db.add(order)
+            db.add(order_item)
+            # 성공 시 자동 커밋, 실패 시 자동 롤백
+    
+    참고:
+        FastAPI의 기본 세션 관리가 있으므로,
+        여러 작업을 원자적으로 처리해야 할 때만 사용
+    """
+    try:
+        yield db
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Transaction failed: {e}")
+        raise
+
+
+@contextmanager
+def atomic_transaction():
+    """독립적인 트랜잭션 컨텍스트
+    
+    사용 예:
+        with atomic_transaction() as db:
+            service.create_order(db, ...)
+            # 성공 시 자동 커밋, 실패 시 자동 롤백
+    """
+    db = SessionLocal()
+    try:
+        yield db
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Atomic transaction failed: {e}")
+        raise
     finally:
         db.close()
 

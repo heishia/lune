@@ -8,7 +8,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from backend.core import models
-from backend.core.exceptions import NotFoundError
+from backend.core.exceptions import NotFoundError, BadRequestError
 
 from . import schemas
 
@@ -23,16 +23,31 @@ def create_order(
     user_id: str,
     payload: schemas.CreateOrderRequest,
 ) -> schemas.CreateOrderResponse:
+    """주문 생성 (재고 확인 및 차감 포함)"""
     if not payload.items:
-        raise NotFoundError("주문 상품이 존재하지 않습니다.")
+        raise BadRequestError("주문 상품이 존재하지 않습니다.")
 
     total_amount = 0
     order_items: List[models.OrderItem] = []
+    products_to_update: List[tuple[models.Product, int]] = []  # (상품, 차감 수량)
 
+    # 1단계: 재고 확인 및 주문 아이템 준비
     for item in payload.items:
         product = db.query(models.Product).filter(models.Product.id == item.productId).first()
         if not product:
-            raise NotFoundError("상품을 찾을 수 없습니다.")
+            raise NotFoundError(f"상품 ID {item.productId}를 찾을 수 없습니다.")
+        
+        # 상품 활성화 상태 확인
+        if not product.is_active:
+            raise BadRequestError(f"'{product.name}' 상품은 현재 판매하지 않습니다.")
+        
+        # 재고 확인
+        if product.stock_quantity < item.quantity:
+            raise BadRequestError(
+                f"'{product.name}' 재고가 부족합니다. "
+                f"(요청: {item.quantity}개, 재고: {product.stock_quantity}개)"
+            )
+        
         line_total = product.price * item.quantity
         total_amount += line_total
 
@@ -48,11 +63,18 @@ def create_order(
             created_at=datetime.utcnow(),
         )
         order_items.append(order_item)
+        products_to_update.append((product, item.quantity))
+
+    # 2단계: 재고 차감 (트랜잭션 내에서)
+    for product, quantity in products_to_update:
+        product.stock_quantity -= quantity
+        product.updated_at = datetime.utcnow()
 
     shipping_fee = 0 if total_amount >= 50000 else 3000
     discount_amount = max(payload.discountAmount, 0)
     final_amount = total_amount + shipping_fee - discount_amount
 
+    # 3단계: 주문 생성
     order = models.Order(
         id=str(uuid4()),
         user_id=user_id,
@@ -127,11 +149,28 @@ def get_order(db: Session, user_id: str, order_id: str) -> models.Order:
 
 
 def cancel_order(db: Session, user_id: str, order_id: str, reason: str) -> None:
+    """주문 취소 (재고 복구 포함)"""
     order = get_order(db=db, user_id=user_id, order_id=order_id)
     if order.status not in {"pending", "paid", "preparing"}:
-        raise NotFoundError("취소할 수 없는 주문 상태입니다.")
+        raise BadRequestError("취소할 수 없는 주문 상태입니다.")
+
+    # 주문 아이템 조회
+    order_items = db.query(models.OrderItem).filter(
+        models.OrderItem.order_id == order_id
+    ).all()
+    
+    # 재고 복구
+    for item in order_items:
+        product = db.query(models.Product).filter(
+            models.Product.id == item.product_id
+        ).first()
+        if product:
+            product.stock_quantity += item.quantity
+            product.updated_at = datetime.utcnow()
 
     order.status = "cancelled"
+    order.cancel_reason = reason
+    order.cancelled_at = datetime.utcnow()
     order.updated_at = datetime.utcnow()
     db.commit()
 

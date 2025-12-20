@@ -64,13 +64,31 @@ cors_origins = [
     "https://www.masionlune.com",
 ]
 
+# 허용할 헤더 명시적 지정 (보안 강화)
+cors_allowed_headers = [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
+    "Cache-Control",
+]
+
+# 노출할 헤더 명시적 지정
+cors_expose_headers = [
+    "Content-Length",
+    "Content-Type",
+    "X-Request-Id",
+]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_headers=cors_allowed_headers,
+    expose_headers=cors_expose_headers,
+    max_age=600,  # Preflight 캐시 시간 (10분)
 )
 
 

@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
 import { ChevronLeft } from "lucide-react";
 import logo from "figma:asset/e95f335bacb8348ed117f587f5d360e078bf26b6.png";
+import { PrivacyPolicyModal } from "./PrivacyPolicyModal";
 
 interface LoginPageProps {
   onLogin: (email: string, token: string) => void;
@@ -16,6 +17,63 @@ interface LoginPageProps {
 export function LoginPage({ onLogin, onBack, onSignupClick, onAdminLogin }: LoginPageProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isKakaoLoading, setIsKakaoLoading] = useState(false);
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+
+  // 카카오 로그인 콜백 처리 (URL에서 code 파라미터 확인)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get("code");
+    const state = urlParams.get("state");
+    
+    if (code && state === "kakao_login") {
+      handleKakaoCallback(code);
+    }
+  }, []);
+
+  const handleKakaoCallback = async (code: string) => {
+    setIsKakaoLoading(true);
+    try {
+      const { kakaoLogin } = await import("../utils/api");
+      const redirectUri = `${window.location.origin}/login`;
+      const response = await kakaoLogin(code, redirectUri);
+      
+      // URL에서 code 파라미터 제거
+      window.history.replaceState({}, document.title, "/login");
+      
+      if (response.user.is_admin && onAdminLogin) {
+        onAdminLogin();
+        toast.success("관리자로 로그인되었습니다!");
+        return;
+      }
+      
+      onLogin(response.user.email, response.token);
+      toast.success("카카오 로그인 되었습니다!");
+      onBack();
+    } catch (error: any) {
+      // URL 정리
+      window.history.replaceState({}, document.title, "/login");
+      toast.error(error.message || "카카오 로그인에 실패했습니다");
+    } finally {
+      setIsKakaoLoading(false);
+    }
+  };
+
+  const handleKakaoLogin = async () => {
+    try {
+      const { getKakaoLoginUrl } = await import("../utils/api");
+      const redirectUri = `${window.location.origin}/login`;
+      const response = await getKakaoLoginUrl(redirectUri);
+      
+      // state 파라미터 추가 (카카오 로그인임을 식별)
+      const authUrl = response.auth_url + "&state=kakao_login";
+      
+      // 카카오 인증 페이지로 리다이렉트
+      window.location.href = authUrl;
+    } catch (error: any) {
+      toast.error(error.message || "카카오 로그인 URL을 가져오는데 실패했습니다");
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +101,18 @@ export function LoginPage({ onLogin, onBack, onSignupClick, onAdminLogin }: Logi
       toast.error(error.message || "로그인에 실패했습니다");
     }
   };
+
+  // 카카오 콜백 처리 중이면 로딩 표시
+  if (isKakaoLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-terra-cotta mx-auto mb-4"></div>
+          <p className="text-black/60">카카오 로그인 처리 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -173,7 +243,7 @@ export function LoginPage({ onLogin, onBack, onSignupClick, onAdminLogin }: Logi
 
               <button
                 type="button"
-                onClick={() => toast.info("소셜 로그인 기능은 준비 중입니다")}
+                onClick={handleKakaoLogin}
                 className="w-full h-12 mobile-h-14 bg-[#FEE500] text-[#000000] hover:bg-[#f5dc00] transition-colors rounded-md flex items-center justify-center gap-2 text-sm mobile-text-xs"
               >
                 <svg className="w-5 h-5 mobile-w-4 mobile-h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -194,8 +264,25 @@ export function LoginPage({ onLogin, onBack, onSignupClick, onAdminLogin }: Logi
               비회원으로 계속하기
             </button>
           </div>
+
+          {/* 개인정보처리방침 링크 */}
+          <div className="mt-6 mobile-mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => setShowPrivacyPolicy(true)}
+              className="text-xs text-black/40 hover:text-brand-terra-cotta transition-colors underline"
+            >
+              개인정보처리방침
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* 개인정보처리방침 모달 */}
+      <PrivacyPolicyModal 
+        isOpen={showPrivacyPolicy} 
+        onClose={() => setShowPrivacyPolicy(false)} 
+      />
     </div>
   );
 }

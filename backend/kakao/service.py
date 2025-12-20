@@ -1,11 +1,14 @@
 from typing import Optional
+from datetime import datetime
+from uuid import uuid4
 import json
 import httpx
 from sqlalchemy.orm import Session
 
 from backend.core import models
 from backend.core.config import get_settings
-from backend.core.exceptions import NotFoundError
+from backend.core.exceptions import NotFoundError, UnauthorizedError
+from backend.core.security import create_access_token, create_refresh_token
 
 # 카카오톡 설정의 고정 ID
 KAKAO_SETTINGS_ID = "00000000-0000-0000-0000-000000000000"
@@ -91,12 +94,13 @@ async def get_kakao_token_from_code(
             raise ValueError(f"토큰 발급 실패: {error_code} - {error_msg}")
 
 
-def get_kakao_auth_url(redirect_uri: str) -> str:
+def get_kakao_auth_url(redirect_uri: str, for_login: bool = False) -> str:
     """
     카카오톡 인가 코드 요청 URL을 생성합니다.
     
     Args:
         redirect_uri: 리다이렉트 URI
+        for_login: 로그인용이면 True (이메일 스코프 포함)
         
     Returns:
         인가 코드 요청 URL
@@ -107,8 +111,12 @@ def get_kakao_auth_url(redirect_uri: str) -> str:
     if not rest_api_key:
         raise ValueError("카카오톡 REST API 키가 설정되지 않았습니다.")
     
-    # 필요한 스코프: 친구 목록 조회, 메시지 전송
-    scopes = ["friends", "talk_message"]
+    # 로그인용 스코프: 이메일, 프로필
+    if for_login:
+        scopes = ["account_email", "profile_nickname"]
+    else:
+        # 메시지 전송용 스코프
+        scopes = ["friends", "talk_message"]
     
     auth_url = (
         f"https://kauth.kakao.com/oauth/authorize"
@@ -119,6 +127,102 @@ def get_kakao_auth_url(redirect_uri: str) -> str:
     )
     
     return auth_url
+
+
+async def get_kakao_user_info(access_token: str) -> dict:
+    """
+    카카오 액세스 토큰으로 사용자 정보를 조회합니다.
+    
+    Returns:
+        사용자 정보 (id, email, nickname 등)
+    """
+    api_url = "https://kapi.kakao.com/v2/user/me"
+    
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+    }
+    
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.get(api_url, headers=headers)
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            error_data = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
+            error_msg = error_data.get("msg", f"HTTP {response.status_code}")
+            raise UnauthorizedError(f"카카오 사용자 정보 조회 실패: {error_msg}")
+
+
+async def kakao_login(db: Session, code: str, redirect_uri: str) -> tuple[models.User, str, str]:
+    """
+    카카오 로그인 처리
+    
+    Args:
+        db: 데이터베이스 세션
+        code: 카카오 인가 코드
+        redirect_uri: 리다이렉트 URI
+        
+    Returns:
+        (user, access_token, refresh_token)
+    """
+    # 1. 인가 코드로 카카오 토큰 발급
+    token_data = await get_kakao_token_from_code(code, redirect_uri)
+    kakao_access_token = token_data.get("access_token")
+    
+    if not kakao_access_token:
+        raise UnauthorizedError("카카오 토큰 발급에 실패했습니다.")
+    
+    # 2. 카카오 사용자 정보 조회
+    kakao_user = await get_kakao_user_info(kakao_access_token)
+    
+    kakao_id = str(kakao_user.get("id"))
+    kakao_account = kakao_user.get("kakao_account", {})
+    profile = kakao_account.get("profile", {})
+    
+    email = kakao_account.get("email", f"kakao_{kakao_id}@kakao.local")
+    name = profile.get("nickname", f"카카오사용자{kakao_id[:4]}")
+    
+    # 3. 기존 사용자 확인 또는 생성
+    # 먼저 이메일로 검색
+    user = db.query(models.User).filter(models.User.email == email).first()
+    
+    if not user:
+        # 새 사용자 생성 (소셜 로그인 사용자)
+        user = models.User(
+            id=str(uuid4()),
+            email=email,
+            name=name,
+            password_hash="",  # 소셜 로그인은 비밀번호 없음
+            phone="",  # 나중에 프로필에서 입력
+            marketing_agreed=False,
+            is_active=True,
+            is_admin=False,
+            points=0,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    else:
+        # 기존 사용자 마지막 로그인 시간 업데이트
+        user.last_login = datetime.utcnow()
+        db.commit()
+        db.refresh(user)
+    
+    # 4. JWT 토큰 생성
+    access_token = create_access_token(
+        subject=str(user.id),
+        extra_claims={
+            "email": user.email,
+            "name": user.name,
+            "is_admin": user.is_admin,
+        },
+    )
+    refresh_token = create_refresh_token(subject=str(user.id))
+    
+    return user, access_token, refresh_token
 
 
 def get_marketing_users(db: Session) -> list[models.User]:

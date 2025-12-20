@@ -30,8 +30,8 @@ class Settings(BaseSettings):
     jwt_secret_key: str = Field(..., validation_alias="JWT_SECRET", description="JWT 서명용 시크릿 키")
     jwt_algorithm: str = Field("HS256", description="JWT 서명 알고리즘")
     access_token_expire_minutes: int = Field(
-        60 * 24 * 7,
-        description="엑세스 토큰 만료 시간(분 단위, 기본 7일)",
+        30,
+        description="엑세스 토큰 만료 시간(분 단위, 기본 30분)",
     )
 
     kakao_rest_api_key: str = Field(
@@ -49,9 +49,15 @@ class Settings(BaseSettings):
         description="관리자 이메일",
     )
 
-    admin_password: str = Field(
+    admin_password_hash: str = Field(
         "",
-        description="관리자 비밀번호",
+        description="관리자 비밀번호 해시 (bcrypt)",
+    )
+    
+    # 리프레시 토큰 설정
+    refresh_token_expire_days: int = Field(
+        7,
+        description="리프레시 토큰 만료 시간(일 단위, 기본 7일)",
     )
 
     kakao_redirect_uri: str = Field(

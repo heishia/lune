@@ -23,6 +23,7 @@ class User(Base):
     last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     marketing_agreed: Mapped[bool] = mapped_column(Boolean, default=False)
     points: Mapped[int] = mapped_column(Integer, default=0)
 
@@ -254,5 +255,33 @@ class Favorite(Base):
 
     user: Mapped[User] = relationship()
     product: Mapped[Product] = relationship()
+
+
+class EmailVerification(Base):
+    """이메일 인증 토큰"""
+    __tablename__ = "email_verifications"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
+    user_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)  # SHA256 해시
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user: Mapped[User] = relationship()
+
+
+class PasswordReset(Base):
+    """비밀번호 재설정 토큰"""
+    __tablename__ = "password_resets"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
+    user_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)  # SHA256 해시
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user: Mapped[User] = relationship()
 
 

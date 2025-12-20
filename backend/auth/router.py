@@ -11,6 +11,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/signup", response_model=schemas.AuthResponse)
 def signup(payload: schemas.SignupRequest, db: Session = Depends(get_db)) -> schemas.AuthResponse:
+    """회원가입 - 액세스 토큰과 리프레시 토큰 발급"""
     user = service.create_user(
         db=db,
         email=payload.email,
@@ -19,40 +20,51 @@ def signup(payload: schemas.SignupRequest, db: Session = Depends(get_db)) -> sch
         phone=payload.phone,
         marketing_agreed=payload.marketing_agreed,
     )
-    token = service.create_user_token(user)
+    access_token, refresh_token = service.create_user_tokens(user)
     return schemas.AuthResponse(
         user=schemas.AuthUser(id=str(user.id), email=user.email, name=user.name),
-        token=token,
+        token=access_token,
+        refresh_token=refresh_token,
     )
 
 
 @router.post("/login", response_model=schemas.AuthResponse)
 def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)) -> schemas.AuthResponse:
-    from backend.core.config import get_settings
-    settings = get_settings()
-    
+    """로그인 - 액세스 토큰과 리프레시 토큰 발급"""
     user = service.authenticate_user(db, email=payload.email, password=payload.password)
-    token = service.create_user_token(user)
-    
-    # 관리자 여부 확인
-    try:
-        is_admin = (payload.email == settings.admin_email and payload.password == settings.admin_password)
-    except Exception:
-        is_admin = False
+    access_token, refresh_token = service.create_user_tokens(user)
     
     return schemas.AuthResponse(
         user=schemas.AuthUser(
             id=str(user.id),
             email=user.email,
             name=user.name,
-            is_admin=is_admin,
+            is_admin=getattr(user, 'is_admin', False),
         ),
-        token=token,
+        token=access_token,
+        refresh_token=refresh_token,
+    )
+
+
+@router.post("/refresh", response_model=schemas.RefreshTokenResponse)
+def refresh_token(
+    payload: schemas.RefreshTokenRequest,
+    db: Session = Depends(get_db),
+) -> schemas.RefreshTokenResponse:
+    """리프레시 토큰으로 새 액세스 토큰 발급"""
+    access_token, new_refresh_token = service.refresh_access_token(
+        db=db,
+        refresh_token=payload.refresh_token,
+    )
+    return schemas.RefreshTokenResponse(
+        token=access_token,
+        refresh_token=new_refresh_token,
     )
 
 
 @router.get("/me", response_model=schemas.MeResponse)
 def get_me(user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)) -> schemas.MeResponse:
+    """현재 사용자 정보 조회"""
     user = service.get_user_by_id(db, user_id=user_id)
     return schemas.MeResponse(
         id=str(user.id),
@@ -61,5 +73,74 @@ def get_me(user_id: str = Depends(get_current_user_id), db: Session = Depends(ge
         phone=user.phone,
         marketing_agreed=user.marketing_agreed,
     )
+
+
+# ==========================================
+# 이메일 인증
+# ==========================================
+
+@router.post("/verify-email", response_model=schemas.VerifyEmailResponse)
+def verify_email(
+    payload: schemas.VerifyEmailRequest,
+    db: Session = Depends(get_db),
+) -> schemas.VerifyEmailResponse:
+    """이메일 인증 토큰 검증"""
+    from . import email_verification
+    email_verification.verify_email_token(db, payload.token)
+    return schemas.VerifyEmailResponse()
+
+
+@router.post("/resend-verification", response_model=schemas.ResendVerificationResponse)
+async def resend_verification(
+    payload: schemas.ResendVerificationRequest,
+    db: Session = Depends(get_db),
+) -> schemas.ResendVerificationResponse:
+    """인증 이메일 재발송"""
+    from . import email_verification
+    
+    # 이메일로 사용자 조회
+    user = service.get_user_by_email(db, email=payload.email)
+    if not user:
+        # 보안상 사용자 없어도 같은 응답
+        return schemas.ResendVerificationResponse(message="이메일이 등록되어 있다면 인증 메일이 발송됩니다.")
+    
+    token, _ = email_verification.resend_verification_email(db, user.id)
+    await email_verification.send_verification_email(payload.email, token)
+    return schemas.ResendVerificationResponse()
+
+
+# ==========================================
+# 비밀번호 재설정
+# ==========================================
+
+@router.post("/forgot-password", response_model=schemas.ForgotPasswordResponse)
+async def forgot_password(
+    payload: schemas.ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+) -> schemas.ForgotPasswordResponse:
+    """비밀번호 재설정 이메일 발송"""
+    from . import password_reset
+    
+    try:
+        token, _ = password_reset.create_password_reset(db, payload.email)
+        await password_reset.send_password_reset_email(payload.email, token)
+    except Exception:
+        # 보안상 오류가 발생해도 같은 응답
+        pass
+    
+    return schemas.ForgotPasswordResponse(
+        message="이메일이 등록되어 있다면 비밀번호 재설정 메일이 발송됩니다."
+    )
+
+
+@router.post("/reset-password", response_model=schemas.ResetPasswordResponse)
+def reset_password_endpoint(
+    payload: schemas.ResetPasswordRequest,
+    db: Session = Depends(get_db),
+) -> schemas.ResetPasswordResponse:
+    """비밀번호 재설정"""
+    from . import password_reset
+    password_reset.reset_password(db, payload.token, payload.new_password)
+    return schemas.ResetPasswordResponse()
 
 

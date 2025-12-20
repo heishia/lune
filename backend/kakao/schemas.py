@@ -48,3 +48,30 @@ class SendMessageResponse(BaseModel):
     failed_count: int
     message: str
 
+
+# 카카오 소셜 로그인 관련 스키마
+class KakaoLoginRequest(BaseModel):
+    """카카오 로그인 요청"""
+    code: str
+    redirect_uri: str
+
+
+class KakaoLoginResponse(BaseModel):
+    """카카오 로그인 응답"""
+    success: bool = True
+    user: "KakaoUserInfo"
+    token: str
+    refresh_token: str
+
+
+class KakaoUserInfo(BaseModel):
+    """카카오 사용자 정보"""
+    id: str
+    email: str
+    name: str
+    is_admin: bool = False
+
+
+class KakaoAuthUrlResponse(BaseModel):
+    """카카오 인가 URL 응답"""
+    auth_url: str

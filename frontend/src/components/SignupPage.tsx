@@ -7,6 +7,7 @@ import { ChevronLeft } from "lucide-react";
 import logo from "figma:asset/e95f335bacb8348ed117f587f5d360e078bf26b6.png";
 import { Checkbox } from "./ui/checkbox";
 import { signup } from "../utils/api";
+import { PrivacyPolicyModal } from "./PrivacyPolicyModal";
 
 interface SignupPageProps {
   onSignup: (email: string, name: string) => void;
@@ -23,6 +24,7 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -237,6 +239,13 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
                   >
                     [필수] 개인정보 수집 및 이용 동의
                   </Label>
+                  <button
+                    type="button"
+                    onClick={() => setShowPrivacyPolicy(true)}
+                    className="text-xs text-brand-terra-cotta hover:underline ml-1"
+                  >
+                    보기
+                  </button>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -278,8 +287,25 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
               </button>
             </p>
           </div>
+
+          {/* 개인정보처리방침 링크 */}
+          <div className="mt-6 mobile-mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => setShowPrivacyPolicy(true)}
+              className="text-xs text-brand-warm-taupe/60 hover:text-brand-terra-cotta transition-colors underline"
+            >
+              개인정보처리방침
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* 개인정보처리방침 모달 */}
+      <PrivacyPolicyModal 
+        isOpen={showPrivacyPolicy} 
+        onClose={() => setShowPrivacyPolicy(false)} 
+      />
     </div>
   );
 }

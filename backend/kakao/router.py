@@ -52,7 +52,7 @@ async def kakao_auth_callback(
     payload: schemas.KakaoAuthCodeRequest,
     db: Session = Depends(get_db),
 ) -> schemas.KakaoTokenResponse:
-    """카카오톡 OAuth 인가 코드를 받아 토큰을 발급받고 저장합니다."""
+    """카카오톡 OAuth 인가 코드를 받아 토큰을 발급받고 저장합니다 (메시지 전송용)."""
     from backend.core.config import get_settings as get_app_settings
     app_settings = get_app_settings()
     
@@ -74,6 +74,37 @@ async def kakao_auth_callback(
         refresh_token=token_data.get("refresh_token", ""),
         expires_in=token_data.get("expires_in", 0),
         scope=token_data.get("scope", ""),
+    )
+
+
+@router.get("/login/url", response_model=schemas.KakaoAuthUrlResponse)
+def get_kakao_login_url(redirect_uri: str) -> schemas.KakaoAuthUrlResponse:
+    """카카오 소셜 로그인 인가 URL을 반환합니다."""
+    auth_url = service.get_kakao_auth_url(redirect_uri, for_login=True)
+    return schemas.KakaoAuthUrlResponse(auth_url=auth_url)
+
+
+@router.post("/login", response_model=schemas.KakaoLoginResponse)
+async def kakao_social_login(
+    payload: schemas.KakaoLoginRequest,
+    db: Session = Depends(get_db),
+) -> schemas.KakaoLoginResponse:
+    """카카오 소셜 로그인 - 인가 코드로 로그인 처리"""
+    user, access_token, refresh_token = await service.kakao_login(
+        db=db,
+        code=payload.code,
+        redirect_uri=payload.redirect_uri,
+    )
+    
+    return schemas.KakaoLoginResponse(
+        user=schemas.KakaoUserInfo(
+            id=str(user.id),
+            email=user.email,
+            name=user.name,
+            is_admin=user.is_admin,
+        ),
+        token=access_token,
+        refresh_token=refresh_token,
     )
 
 

@@ -19,6 +19,19 @@ export function removeToken(): void {
   localStorage.removeItem('lune_auth_token');
 }
 
+// 리프레시 토큰 관련 함수
+export function getRefreshToken(): string | null {
+  return localStorage.getItem('lune_refresh_token');
+}
+
+export function setRefreshToken(token: string): void {
+  localStorage.setItem('lune_refresh_token', token);
+}
+
+export function removeRefreshToken(): void {
+  localStorage.removeItem('lune_refresh_token');
+}
+
 // 로컬 스토리지에서 사용자 정보 가져오기
 export function getUserInfo(): { id: string; email: string; name: string } | null {
   const userStr = localStorage.getItem('lune_user_info');
@@ -57,10 +70,24 @@ async function apiRequest<T>(
     headers,
   });
 
-  // 401 에러이고 토큰을 사용했다면, 토큰 제거 후 publicAnonKey로 재시도
+  // 401 에러이고 토큰을 사용했다면, 리프레시 토큰으로 갱신 시도
   if (response.status === 401 && token && !useAnonKey) {
-    console.warn('Token expired or invalid, retrying with anon key...');
+    const refreshToken = getRefreshToken();
+    if (refreshToken) {
+      try {
+        const refreshed = await refreshAccessToken(refreshToken);
+        if (refreshed) {
+          // 새 토큰으로 재시도
+          return apiRequest<T>(endpoint, options, false);
+        }
+      } catch {
+        // 리프레시 실패 시 로그아웃 처리
+        console.warn('Token refresh failed, logging out...');
+      }
+    }
+    // 리프레시 토큰이 없거나 실패 시 로그아웃
     removeToken();
+    removeRefreshToken();
     removeUserInfo();
     return apiRequest<T>(endpoint, options, true);
   }
@@ -99,6 +126,13 @@ export interface AuthResponse {
     is_admin?: boolean;
   };
   token: string;
+  refresh_token: string;
+}
+
+export interface RefreshTokenResponse {
+  success: boolean;
+  token: string;
+  refresh_token: string;
 }
 
 export async function signup(data: SignupData): Promise<AuthResponse> {
@@ -109,6 +143,7 @@ export async function signup(data: SignupData): Promise<AuthResponse> {
   
   // 토큰과 사용자 정보 저장
   setToken(response.token);
+  setRefreshToken(response.refresh_token);
   setUserInfo(response.user);
   
   return response;
@@ -122,13 +157,36 @@ export async function login(data: LoginData): Promise<AuthResponse> {
   
   // 토큰과 사용자 정보 저장
   setToken(response.token);
+  setRefreshToken(response.refresh_token);
   setUserInfo(response.user);
   
   return response;
 }
 
+export async function refreshAccessToken(refreshToken: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    
+    if (!response.ok) {
+      return false;
+    }
+    
+    const data: RefreshTokenResponse = await response.json();
+    setToken(data.token);
+    setRefreshToken(data.refresh_token);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function logout(): void {
   removeToken();
+  removeRefreshToken();
   removeUserInfo();
 }
 
@@ -348,13 +406,46 @@ export async function deleteProduct(id: number): Promise<{ success: boolean }> {
 }
 
 // ==========================================
-// Kakao API (카카오톡 메시지)
+// Kakao API (카카오톡 메시지 + 소셜 로그인)
 // ==========================================
 
 export interface KakaoSettings {
   access_token: string;
   has_token: boolean;
   auth_url?: string;
+}
+
+// 카카오 소셜 로그인 응답
+export interface KakaoLoginResponse {
+  success: boolean;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    is_admin?: boolean;
+  };
+  token: string;
+  refresh_token: string;
+}
+
+// 카카오 로그인 URL 가져오기
+export async function getKakaoLoginUrl(redirectUri: string): Promise<{ auth_url: string }> {
+  return apiRequest(`/kakao/login/url?redirect_uri=${encodeURIComponent(redirectUri)}`);
+}
+
+// 카카오 소셜 로그인
+export async function kakaoLogin(code: string, redirectUri: string): Promise<KakaoLoginResponse> {
+  const response = await apiRequest<KakaoLoginResponse>('/kakao/login', {
+    method: 'POST',
+    body: JSON.stringify({ code, redirect_uri: redirectUri }),
+  });
+  
+  // 토큰과 사용자 정보 저장
+  setToken(response.token);
+  setRefreshToken(response.refresh_token);
+  setUserInfo(response.user);
+  
+  return response;
 }
 
 export interface MarketingUser {

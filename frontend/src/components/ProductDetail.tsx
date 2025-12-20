@@ -38,13 +38,30 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
         const data = await getProduct(productId);
         console.log("Product data received:", data);
         console.log("Product name:", data.name);
+        console.log("Product colors:", data.colors);
+        console.log("Product colors type:", typeof data.colors);
+        
+        // colors가 문자열인 경우 배열로 변환
+        if (typeof (data as any).colors === 'string') {
+          (data as any).colors = (data as any).colors.split(',').map((c: string) => c.trim());
+          console.log("Colors converted to array:", data.colors);
+        }
+        
+        // sizes가 문자열인 경우 배열로 변환
+        if (typeof (data as any).sizes === 'string') {
+          (data as any).sizes = (data as any).sizes.split(',').map((s: string) => s.trim());
+        }
+        
         // product를 먼저 설정한 후 loading을 false로 설정하여 깜빡임 방지
         setProduct(data);
-        if (data.colors.length > 0) {
+        if (data.colors && data.colors.length > 0) {
           setSelectedColor(data.colors[0]);
         }
-        if (data.sizes.length > 0) {
+        if (data.sizes && data.sizes.length > 0) {
           setSelectedSize(data.sizes[0]);
+        } else {
+          // 사이즈가 없으면 Free를 기본값으로 설정
+          setSelectedSize("Free");
         }
         setLoading(false);
       } catch (error) {
@@ -265,7 +282,7 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
 
               return (
                 <>
-                  <div className="aspect-[3/4] max-[500px]:aspect-[4/5] bg-brand-warm-taupe/10 rounded-lg overflow-hidden relative">
+                  <div className="aspect-square bg-brand-warm-taupe/10 rounded-lg overflow-hidden relative">
                     <ImageWithFallback
                       src={currentImage}
                       alt={`${product.name} - ${currentImageIndex + 1}`}
@@ -370,21 +387,28 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
                 COLOR
               </h3>
               <div className="flex gap-2 flex-wrap">
-                {product.colors.map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => setSelectedColor(color)}
-                    className={`w-10 h-10 max-[500px]:w-12 max-[500px]:h-12 rounded-full border-2 transition-all ${
-                      selectedColor === color
-                        ? "border-brand-terra-cotta scale-110"
-                        : "border-brand-warm-taupe/30 hover:border-brand-warm-taupe"
-                    }`}
-                    style={{ backgroundColor: getColorHex(color) }}
-                    title={color}
-                  />
-                ))}
+                {product.colors && product.colors.length > 0 ? (
+                  product.colors.map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => {
+                        console.log("Color selected:", color);
+                        setSelectedColor(color);
+                      }}
+                      className={`w-10 h-10 max-[500px]:w-12 max-[500px]:h-12 rounded-full border-2 transition-all ${
+                        selectedColor === color
+                          ? "border-brand-terra-cotta scale-110"
+                          : "border-brand-warm-taupe/30 hover:border-brand-warm-taupe"
+                      }`}
+                      style={{ backgroundColor: getColorHex(color) }}
+                      title={color}
+                    />
+                  ))
+                ) : (
+                  <p className="text-xs text-brand-warm-taupe">사용 가능한 색상이 없습니다</p>
+                )}
               </div>
-              <p className="text-xs text-brand-warm-taupe mt-2">{selectedColor}</p>
+              <p className="text-xs text-brand-warm-taupe mt-2">선택된 색상: {selectedColor || "없음"}</p>
             </div>
 
             {/* Size Selection */}
