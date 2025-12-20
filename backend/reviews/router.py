@@ -122,3 +122,13 @@ def get_favorite_count(
     count = service.get_favorite_count(db=db, product_id=product_id)
     return {"count": count}
 
+
+@router.get("/product/{product_id}/can-review")
+def can_review_product(
+    product_id: int,
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+) -> dict:
+    """사용자가 해당 상품에 리뷰를 작성할 수 있는지 확인"""
+    return service.can_user_review_product(db=db, user_id=user_id, product_id=product_id)
+

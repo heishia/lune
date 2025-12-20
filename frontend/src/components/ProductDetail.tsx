@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Star, MessageSquare } from "lucide-react";
-import { getProduct, getContentByReference, getProductReviews, getFavoriteCount, Product, Content, ContentBlock, Review } from "../utils/api";
+import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { getProduct, getContentByReference, getProductReviews, getFavoriteCount, canReviewProduct, Product, Content, ContentBlock, Review } from "../utils/api";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
 import { projectId, publicAnonKey } from "../utils/supabase/info";
@@ -28,12 +28,16 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
   const [reviewLoading, setReviewLoading] = useState(false);
   const [favoriteCount, setFavoriteCount] = useState(0);
   const [reviewCount, setReviewCount] = useState(0);
+  const [canReview, setCanReview] = useState(false);
+  const [reviewOrderItemId, setReviewOrderItemId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
         const data = await getProduct(productId);
+        console.log("Product data received:", data);
+        console.log("Product name:", data.name);
         // product를 먼저 설정한 후 loading을 false로 설정하여 깜빡임 방지
         setProduct(data);
         if (data.colors.length > 0) {
@@ -97,11 +101,29 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
           console.warn("Failed to fetch favorite count:", error);
           setFavoriteCount(0);
         }
+
+        // 리뷰 작성 가능 여부 확인 (로그인한 경우만)
+        if (accessToken) {
+          try {
+            const reviewCheck = await canReviewProduct(productId);
+            setCanReview(reviewCheck.can_review);
+            setReviewOrderItemId(reviewCheck.order_item_id);
+          } catch (error) {
+            console.warn("Failed to check review permission:", error);
+            setCanReview(false);
+            setReviewOrderItemId(null);
+          }
+        } else {
+          setCanReview(false);
+          setReviewOrderItemId(null);
+        }
       } catch (error) {
         console.error("Failed to fetch reviews:", error);
         setReviews([]);
         setReviewCount(0);
         setFavoriteCount(0);
+        setCanReview(false);
+        setReviewOrderItemId(null);
       } finally {
         setReviewLoading(false);
       }
@@ -110,7 +132,7 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
     if (productId) {
       fetchReviewsAndCounts();
     }
-  }, [productId]);
+  }, [productId, accessToken]);
 
   const checkFavoriteStatus = async () => {
     try {
@@ -228,22 +250,9 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <div className="bg-white border-b border-brand-warm-taupe/20 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 max-[500px]:px-3 py-6 max-[500px]:py-4">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-brand-terra-cotta hover:text-brand-warm-taupe transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-            <span className="text-sm tracking-wider">BACK</span>
-          </button>
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-white pt-56 max-[500px]:pt-28">
       {/* Product Detail */}
-      <div className="max-w-6xl mx-auto px-4 max-[500px]:px-3 py-12 max-[500px]:py-8">
+      <div className="max-w-6xl mx-auto px-4 max-[500px]:px-3 pb-12 max-[500px]:pb-8">
         <div className="grid md:grid-cols-2 max-[500px]:flex max-[500px]:flex-col gap-12 max-[500px]:gap-8">
           {/* Product Image Gallery */}
           <div className="relative">
@@ -345,44 +354,14 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
 
           {/* Product Info */}
           <div className="flex flex-col">
-            <div className="mb-6 max-[500px]:mb-4">
-              <div className="flex gap-2 mb-3 max-[500px]:mb-2 flex-wrap">
-                {product.category.map((cat, idx) => (
-                  <span
-                    key={idx}
-                    className="text-[10px] tracking-widest text-brand-warm-taupe"
-                  >
-                    {cat}
-                  </span>
-                ))}
-              </div>
-              <h1 className="text-2xl max-[500px]:text-xl tracking-wider text-brand-terra-cotta mb-4 max-[500px]:mb-3">
-                {product.name}
+            {/* Product Name - 최상단에 표시 */}
+            <div className="mb-8 max-[500px]:mb-6 pb-8 max-[500px]:pb-6 border-b border-brand-warm-taupe/20">
+              <h1 className="text-3xl max-[500px]:text-2xl font-bold tracking-wider text-brand-terra-cotta mb-4 max-[500px]:mb-3" style={{ display: 'block', visibility: 'visible' }}>
+                {product.name || "상품명 로딩 중..."}
               </h1>
-              <p className="text-sm max-[500px]:text-xs text-brand-warm-taupe leading-relaxed mb-6 max-[500px]:mb-4">
+              <p className="text-sm max-[500px]:text-xs text-brand-warm-taupe leading-relaxed">
                 {product.description}
               </p>
-            </div>
-
-            {/* Price */}
-            <div className="mb-8 max-[500px]:mb-6 pb-8 max-[500px]:pb-6 border-b border-brand-warm-taupe/20">
-              <div className="flex items-center gap-3">
-                {product.original_price && (
-                  <span className="text-brand-warm-taupe/60 line-through">
-                    {product.original_price.toLocaleString()} won
-                  </span>
-                )}
-                <span className="text-2xl max-[500px]:text-xl text-brand-terra-cotta">
-                  {product.price.toLocaleString()} won
-                </span>
-              </div>
-              {product.original_price && (
-                <div className="mt-2">
-                  <span className="text-sm max-[500px]:text-xs text-brand-terra-cotta">
-                    {Math.round((1 - product.price / product.original_price) * 100)}% OFF
-                  </span>
-                </div>
-              )}
             </div>
 
             {/* Color Selection */}
@@ -431,7 +410,7 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
             </div>
 
             {/* Quantity */}
-            <div className="mb-8 max-[500px]:mb-6">
+            <div className="mb-6 max-[500px]:mb-4">
               <h3 className="text-xs tracking-wider text-brand-terra-cotta mb-3 max-[500px]:mb-2">
                 QUANTITY
               </h3>
@@ -452,8 +431,27 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
               </div>
             </div>
 
+            {/* Price - 수량 아래로 이동, 구분선 제거 */}
+            <div className="mb-4 max-[500px]:mb-3">
+              <div className="flex items-center gap-3">
+                {product.original_price && (
+                  <span className="text-brand-warm-taupe/60 line-through text-sm">
+                    {product.original_price.toLocaleString()} won
+                  </span>
+                )}
+                <span className="text-xl text-brand-terra-cotta">
+                  {product.price.toLocaleString()} won
+                </span>
+                {product.original_price && (
+                  <span className="text-sm text-brand-terra-cotta">
+                    {Math.round((1 - product.price / product.original_price) * 100)}% OFF
+                  </span>
+                )}
+              </div>
+            </div>
+
             {/* Action Buttons */}
-            <div className="flex items-center gap-3 max-[500px]:flex-col mt-auto">
+            <div className="flex items-center gap-3 max-[500px]:flex-col">
               <button 
                 onClick={() => {
                   if (!selectedColor || !selectedSize) {
@@ -469,10 +467,10 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
                 장바구니 담기
               </button>
               <div className="flex items-center gap-4">
-                {/* Review Count - 댓글 */}
+                {/* Review Count - 리뷰 */}
                 <div className="flex items-center gap-1.5">
-                  <MessageSquare className="w-5 h-5 text-brand-warm-taupe" />
-                  <span className="text-sm text-brand-warm-taupe">{reviewCount}</span>
+                  <Star className="w-5 h-5 text-brand-warm-taupe fill-brand-warm-taupe/30" />
+                  <span className="text-sm text-brand-warm-taupe">리뷰 {reviewCount}</span>
                 </div>
                 {/* Favorite - 좋아요 */}
                 <div className="flex items-center gap-1.5">

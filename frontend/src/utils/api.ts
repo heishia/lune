@@ -889,3 +889,11 @@ export async function deleteReview(reviewId: string): Promise<{ success: boolean
 export async function getFavoriteCount(productId: number): Promise<{ count: number }> {
   return apiRequest(`/reviews/product/${productId}/favorites/count`);
 }
+
+export async function canReviewProduct(productId: number): Promise<{
+  can_review: boolean;
+  reason: string | null;
+  order_item_id: string | null;
+}> {
+  return apiRequest(`/reviews/product/${productId}/can-review`);
+}
