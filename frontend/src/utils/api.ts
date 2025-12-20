@@ -2,7 +2,7 @@ import { publicAnonKey } from './supabase/info';
 
 // 환경변수에서 API URL을 가져오거나 기본값으로 localhost 사용
 // Vercel 배포 시 VITE_API_URL 환경변수에 Railway 백엔드 URL 설정 필요
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
 
 // 로컬 스토리지에서 토큰 가져오기
 export function getToken(): string | null {
@@ -826,4 +826,66 @@ export async function uploadVideo(file: File): Promise<UploadResponse> {
   }
 
   return response.json();
+}
+
+// ==========================================
+// Reviews API (후기)
+// ==========================================
+
+export interface Review {
+  id: string;
+  product_id: number;
+  user_id: string;
+  user_name: string;
+  order_item_id?: string;
+  rating: number;
+  content?: string;
+  images: string[];
+  helpful_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReviewsResponse {
+  reviews: Review[];
+  total: number;
+  average_rating: number;
+  total_ratings: number;
+}
+
+export interface CreateReviewData {
+  product_id: number;
+  rating: number;
+  content?: string;
+  images?: string[];
+  order_item_id?: string;
+}
+
+export async function getProductReviews(productId: number, limit?: number): Promise<ReviewsResponse> {
+  const query = limit ? `?limit=${limit}` : '';
+  return apiRequest(`/reviews/product/${productId}${query}`);
+}
+
+export async function createReview(data: CreateReviewData): Promise<Review> {
+  return apiRequest('/reviews', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateReview(reviewId: string, data: Partial<CreateReviewData>): Promise<Review> {
+  return apiRequest(`/reviews/${reviewId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteReview(reviewId: string): Promise<{ success: boolean }> {
+  return apiRequest(`/reviews/${reviewId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function getFavoriteCount(productId: number): Promise<{ count: number }> {
+  return apiRequest(`/reviews/product/${productId}/favorites/count`);
 }

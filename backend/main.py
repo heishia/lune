@@ -18,6 +18,7 @@ from backend.coupons.router import router as coupons_router
 from backend.admin.router import router as admin_router
 from backend.contents.router import router as contents_router
 from backend.uploads.router import router as uploads_router
+from backend.reviews.router import router as reviews_router
 
 settings = get_settings()
 configure_logging()
@@ -152,5 +153,6 @@ app.include_router(coupons_router)
 app.include_router(admin_router)
 app.include_router(contents_router)
 app.include_router(uploads_router)
+app.include_router(reviews_router)
 
 

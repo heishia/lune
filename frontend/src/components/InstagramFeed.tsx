@@ -23,7 +23,7 @@ export function InstagramFeed() {
       setLoading(true);
       // 개발 환경에서는 로컬 백엔드 사용, 프로덕션에서는 Supabase Edge Function 사용
       const apiUrl = import.meta.env.DEV
-        ? 'http://localhost:8000/instagram/media'
+        ? 'http://localhost:8001/instagram/media'
         : `https://${projectId}.supabase.co/functions/v1/make-server-8ed17d84/instagram/media`;
       
       const response = await fetch(apiUrl, {

@@ -226,3 +226,33 @@ class Content(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class Review(Base):
+    __tablename__ = "reviews"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
+    product_id: Mapped[int] = mapped_column(Integer, ForeignKey("products.id"), nullable=False)
+    user_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False)
+    order_item_id: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("order_items.id"), nullable=True)
+    rating: Mapped[int] = mapped_column(Integer, nullable=False)  # 1-5
+    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    images: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=[])
+    helpful_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    product: Mapped[Product] = relationship()
+    user: Mapped[User] = relationship()
+
+
+class Favorite(Base):
+    __tablename__ = "favorites"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
+    user_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False)
+    product_id: Mapped[int] = mapped_column(Integer, ForeignKey("products.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user: Mapped[User] = relationship()
+    product: Mapped[Product] = relationship()
+
+

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { Heart, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
-import { getProduct, getContentByReference, Product, Content, ContentBlock } from "../utils/api";
+import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Star, MessageSquare } from "lucide-react";
+import { getProduct, getContentByReference, getProductReviews, getFavoriteCount, Product, Content, ContentBlock, Review } from "../utils/api";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
 import { projectId, publicAnonKey } from "../utils/supabase/info";
@@ -24,12 +24,17 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
   const [productContent, setProductContent] = useState<Content | null>(null);
   const [contentLoading, setContentLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [favoriteCount, setFavoriteCount] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
         const data = await getProduct(productId);
+        // product를 먼저 설정한 후 loading을 false로 설정하여 깜빡임 방지
         setProduct(data);
         if (data.colors.length > 0) {
           setSelectedColor(data.colors[0]);
@@ -37,11 +42,11 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
         if (data.sizes.length > 0) {
           setSelectedSize(data.sizes[0]);
         }
+        setLoading(false);
       } catch (error) {
         console.error("Failed to fetch product:", error);
-        toast.error("상품 정보를 불러올 수 없습니다");
-      } finally {
         setLoading(false);
+        toast.error("상품 정보를 불러올 수 없습니다");
       }
     };
 
@@ -72,6 +77,38 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
 
     if (productId) {
       fetchProductContent();
+    }
+  }, [productId]);
+
+  // 후기 및 찜 개수 불러오기
+  useEffect(() => {
+    const fetchReviewsAndCounts = async () => {
+      try {
+        setReviewLoading(true);
+        const reviewsData = await getProductReviews(productId, 4);
+        setReviews(reviewsData.reviews);
+        setReviewCount(reviewsData.total);
+        
+        // 찜 개수는 에러가 발생해도 무시 (테이블이 없을 수 있음)
+        try {
+          const favoriteData = await getFavoriteCount(productId);
+          setFavoriteCount(favoriteData.count);
+        } catch (error) {
+          console.warn("Failed to fetch favorite count:", error);
+          setFavoriteCount(0);
+        }
+      } catch (error) {
+        console.error("Failed to fetch reviews:", error);
+        setReviews([]);
+        setReviewCount(0);
+        setFavoriteCount(0);
+      } finally {
+        setReviewLoading(false);
+      }
+    };
+
+    if (productId) {
+      fetchReviewsAndCounts();
     }
   }, [productId]);
 
@@ -151,6 +188,16 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-brand-warm-taupe tracking-wider mb-4">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!product) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -159,16 +206,6 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
           <Button onClick={onBack} variant="outline">
             Go Back
           </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-brand-warm-taupe tracking-wider mb-4">로딩 중...</p>
         </div>
       </div>
     );
@@ -416,7 +453,7 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 max-[500px]:flex-col mt-auto">
+            <div className="flex items-center gap-3 max-[500px]:flex-col mt-auto">
               <button 
                 onClick={() => {
                   if (!selectedColor || !selectedSize) {
@@ -426,26 +463,33 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
                   onAddToCart(product.id, quantity, selectedColor, selectedSize);
                   toast.success("장바구니에 추가되었습니다!");
                 }}
-                className="flex-1 bg-brand-terra-cotta text-brand-cream py-4 max-[500px]:py-5 hover:bg-brand-warm-taupe transition-colors flex items-center justify-center gap-2 tracking-wider text-sm max-[500px]:text-base"
+                className="bg-brand-terra-cotta text-brand-cream py-3 px-6 max-[500px]:py-4 max-[500px]:w-full hover:bg-brand-warm-taupe transition-colors flex items-center justify-center gap-2 tracking-wider text-sm"
               >
-                <ShoppingCart className="w-5 h-5" />
-                ADD TO CART
+                <ShoppingCart className="w-4 h-4" />
+                장바구니 담기
               </button>
-              <button
-                onClick={toggleFavorite}
-                disabled={favoriteLoading}
-                className={`w-14 h-14 max-[500px]:w-full max-[500px]:h-12 border transition-colors flex items-center justify-center ${
-                  isFavorite
-                    ? "border-brand-terra-cotta bg-brand-terra-cotta text-white"
-                    : "border-brand-warm-taupe/30 text-brand-terra-cotta hover:bg-brand-warm-taupe/10"
-                }`}
-              >
-                {favoriteLoading ? (
-                  <div className="animate-spin w-5 h-5 border-2 border-current border-t-transparent rounded-full" />
-                ) : (
-                  <Heart className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`} />
-                )}
-              </button>
+              <div className="flex items-center gap-4">
+                {/* Review Count - 댓글 */}
+                <div className="flex items-center gap-1.5">
+                  <MessageSquare className="w-5 h-5 text-brand-warm-taupe" />
+                  <span className="text-sm text-brand-warm-taupe">{reviewCount}</span>
+                </div>
+                {/* Favorite - 좋아요 */}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={toggleFavorite}
+                    disabled={favoriteLoading}
+                    className="transition-colors"
+                  >
+                    {favoriteLoading ? (
+                      <div className="animate-spin w-5 h-5 border-2 border-brand-terra-cotta border-t-transparent rounded-full" />
+                    ) : (
+                      <Heart className={`w-5 h-5 ${isFavorite ? "fill-brand-terra-cotta text-brand-terra-cotta" : "text-brand-warm-taupe"}`} />
+                    )}
+                  </button>
+                  <span className="text-sm text-brand-warm-taupe">{favoriteCount}</span>
+                </div>
+              </div>
             </div>
 
             {/* Total Price */}
@@ -461,6 +505,78 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
             </div>
           </div>
         </div>
+
+        {/* Reviews Section - 2x2 Grid */}
+        {reviewLoading ? (
+          <div className="mt-16 pt-8 border-t border-brand-warm-taupe/20">
+            <div className="text-center text-brand-warm-taupe">
+              후기를 불러오는 중...
+            </div>
+          </div>
+        ) : reviews.length > 0 ? (
+          <div className="mt-16 pt-8 border-t border-brand-warm-taupe/20">
+            <h2 className="text-lg tracking-wider text-brand-terra-cotta mb-8 text-center">
+              REVIEWS
+            </h2>
+            <div className="grid grid-cols-2 gap-4 max-[500px]:grid-cols-1">
+              {reviews.map((review) => (
+                <div
+                  key={review.id}
+                  className="border border-brand-warm-taupe/20 rounded-lg p-4 hover:border-brand-warm-taupe/40 transition-colors"
+                >
+                  {/* Review Header */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium text-brand-terra-cotta">
+                          {review.user_name}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-3 h-3 ${
+                                i < review.rating
+                                  ? "fill-brand-terra-cotta text-brand-terra-cotta"
+                                  : "text-brand-warm-taupe/30"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-xs text-brand-warm-taupe/60">
+                      {new Date(review.created_at).toLocaleDateString("ko-KR", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </div>
+
+                  {/* Review Content */}
+                  <p className="text-xs text-brand-warm-taupe leading-relaxed mb-3 line-clamp-3">
+                    {review.content}
+                  </p>
+
+                  {/* Review Images */}
+                  {review.images && review.images.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {review.images.slice(0, 3).map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img}
+                          alt={`Review image ${idx + 1}`}
+                          className="w-16 h-16 object-cover rounded border border-brand-warm-taupe/20"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {/* 상품 상세 설명 (에디터에서 작성한 콘텐츠) */}
         {contentLoading ? (

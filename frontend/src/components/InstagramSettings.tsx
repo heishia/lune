@@ -9,7 +9,7 @@ import { projectId, publicAnonKey } from "../utils/supabase/info";
 // 개발 환경에서는 로컬 백엔드 사용, 프로덕션에서는 Supabase Edge Function 사용
 const getApiUrl = (endpoint: string) => {
   const baseUrl = import.meta.env.DEV
-    ? 'http://localhost:8000'
+    ? 'http://localhost:8001'
     : `https://${projectId}.supabase.co/functions/v1/make-server-8ed17d84`;
   return `${baseUrl}${endpoint}`;
 };
