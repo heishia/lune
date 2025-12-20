@@ -39,6 +39,9 @@ celery_app.conf.update(
     # 재시도 설정
     task_acks_late=True,
     task_reject_on_worker_lost=True,
+    
+    # 브로커 연결 재시도 (Celery 6.0 대비)
+    broker_connection_retry_on_startup=True,
 )
 
 # 태스크 모듈 자동 발견
