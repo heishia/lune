@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
@@ -7,7 +8,6 @@ import { ChevronLeft } from "lucide-react";
 import logo from "figma:asset/e95f335bacb8348ed117f587f5d360e078bf26b6.png";
 import { Checkbox } from "./ui/checkbox";
 import { signup } from "../utils/api";
-import { PrivacyPolicyModal } from "./PrivacyPolicyModal";
 
 interface SignupPageProps {
   onSignup: (email: string, name: string) => void;
@@ -16,6 +16,7 @@ interface SignupPageProps {
 }
 
 export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) {
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,7 +25,6 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
-  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,7 +241,7 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
                   </Label>
                   <button
                     type="button"
-                    onClick={() => setShowPrivacyPolicy(true)}
+                    onClick={() => navigate("/privacy-policy")}
                     className="text-xs text-brand-terra-cotta hover:underline ml-1"
                   >
                     보기
@@ -292,7 +292,7 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
           <div className="mt-6 mobile-mt-4 text-center">
             <button
               type="button"
-              onClick={() => setShowPrivacyPolicy(true)}
+              onClick={() => navigate("/privacy-policy")}
               className="text-xs text-brand-warm-taupe/60 hover:text-brand-terra-cotta transition-colors underline"
             >
               개인정보처리방침
@@ -300,12 +300,6 @@ export function SignupPage({ onSignup, onBack, onLoginClick }: SignupPageProps) 
           </div>
         </div>
       </div>
-
-      {/* 개인정보처리방침 모달 */}
-      <PrivacyPolicyModal 
-        isOpen={showPrivacyPolicy} 
-        onClose={() => setShowPrivacyPolicy(false)} 
-      />
     </div>
   );
 }

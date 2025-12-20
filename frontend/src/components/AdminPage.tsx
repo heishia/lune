@@ -53,7 +53,7 @@ interface AdminPageProps {
 }
 
 const CATEGORIES = ["TOP", "BOTTOM", "ONEPIECE", "SET", "SHOES", "BAG & ACC"];
-const SIZES = ["S", "M", "L", "XL", "230", "235", "240", "245", "250", "ONE SIZE"];
+const SIZES = ["S", "M", "L", "XL", "230", "235", "240", "245", "250", "FREE SIZE"];
 const COLOR_OPTIONS = [
   { name: "White", hex: "#FFFFFF" },
   { name: "Black", hex: "#1a1a1a" },

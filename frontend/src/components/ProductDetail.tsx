@@ -54,15 +54,9 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
         
         // product를 먼저 설정한 후 loading을 false로 설정하여 깜빡임 방지
         setProduct(data);
-        if (data.colors && data.colors.length > 0) {
-          setSelectedColor(data.colors[0]);
-        }
-        if (data.sizes && data.sizes.length > 0) {
-          setSelectedSize(data.sizes[0]);
-        } else {
-          // 사이즈가 없으면 Free를 기본값으로 설정
-          setSelectedSize("Free");
-        }
+        // 색상과 사이즈는 사용자가 직접 선택하도록 빈 값으로 시작
+        setSelectedColor("");
+        setSelectedSize("");
         setLoading(false);
       } catch (error) {
         console.error("Failed to fetch product:", error);
@@ -417,7 +411,8 @@ export function ProductDetail({ productId, onBack, onAddToCart, accessToken }: P
                 SIZE
               </h3>
               <div className="flex gap-2 flex-wrap">
-                {product.sizes.map((size) => (
+                {/* 사이즈가 있으면 사이즈 목록 표시, 없으면 FREE SIZE 표시 */}
+                {(product.sizes && product.sizes.length > 0 ? product.sizes : ["FREE SIZE"]).map((size) => (
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}

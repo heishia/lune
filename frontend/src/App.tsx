@@ -15,6 +15,7 @@ import { AdminPage } from "./components/AdminPage";
 import { AccountPage } from "./components/AccountPage";
 import { CheckoutPage } from "./components/CheckoutPage";
 import { EventDetailPage } from "./components/EventDetailPage";
+import { PrivacyPolicyPage } from "./components/PrivacyPolicyPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Toaster } from "./components/ui/sonner";
 
@@ -258,6 +259,13 @@ function AccountPageWrapper() {
   );
 }
 
+// 개인정보처리방침 페이지 래퍼
+function PrivacyPolicyPageWrapper() {
+  const navigate = useNavigate();
+
+  return <PrivacyPolicyPage onBack={() => navigate(-1)} />;
+}
+
 // 결제 페이지 래퍼
 function CheckoutPageWrapper() {
   const navigate = useNavigate();
@@ -329,6 +337,7 @@ export default function App() {
       <Route path="/admin" element={<><AdminPageWrapper /><Toaster position="top-center" /></>} />
       <Route path="/account" element={<><AccountPageWrapper /><Toaster position="top-center" /></>} />
       <Route path="/checkout" element={<><CheckoutPageWrapper /><Toaster position="top-center" /></>} />
+      <Route path="/privacy-policy" element={<><PrivacyPolicyPageWrapper /><Toaster position="top-center" /></>} />
 
       {/* 헤더가 있는 페이지들 */}
       <Route
