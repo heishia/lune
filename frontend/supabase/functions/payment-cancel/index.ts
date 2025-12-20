@@ -6,10 +6,31 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// 허용된 Origin 목록 (화이트리스트)
+const ALLOWED_ORIGINS = [
+  "https://masionlune.com",
+  "https://www.masionlune.com",
+  // 개발 환경 (프로덕션에서는 제거 권장)
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173",
+];
+
+/**
+ * Origin 검증 및 CORS 헤더 생성
+ */
+function getCorsHeaders(requestOrigin: string | null): Record<string, string> {
+  const origin = requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)
+    ? requestOrigin
+    : ALLOWED_ORIGINS[0];
+  
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Max-Age": "86400",
+  };
+}
 
 interface PaymentCancelRequest {
   paymentKey: string;
@@ -18,6 +39,9 @@ interface PaymentCancelRequest {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get("Origin");
+  const corsHeaders = getCorsHeaders(origin);
+  
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

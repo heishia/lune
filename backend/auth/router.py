@@ -1,17 +1,31 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.orm import Session
 
 from backend.core.database import get_db
 from backend.core.security import get_current_user_id
+from backend.core.rate_limit import limiter, RATE_LIMITS
+from backend.core.config import get_settings
+from backend.core.cookies import set_auth_cookies, clear_auth_cookies
 
 from . import schemas, service
+
+settings = get_settings()
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/signup", response_model=schemas.AuthResponse)
-def signup(payload: schemas.SignupRequest, db: Session = Depends(get_db)) -> schemas.AuthResponse:
-    """회원가입 - 액세스 토큰과 리프레시 토큰 발급"""
+@limiter.limit(RATE_LIMITS["auth_signup"])
+def signup(
+    request: Request,
+    response: Response,
+    payload: schemas.SignupRequest,
+    db: Session = Depends(get_db),
+) -> schemas.AuthResponse:
+    """회원가입 - 액세스 토큰과 리프레시 토큰 발급
+    
+    토큰은 httpOnly 쿠키와 JSON 응답 모두로 제공됩니다.
+    """
     user = service.create_user(
         db=db,
         email=payload.email,
@@ -21,6 +35,10 @@ def signup(payload: schemas.SignupRequest, db: Session = Depends(get_db)) -> sch
         marketing_agreed=payload.marketing_agreed,
     )
     access_token, refresh_token = service.create_user_tokens(user)
+    
+    # httpOnly 쿠키로 토큰 설정
+    set_auth_cookies(response, access_token, refresh_token)
+    
     return schemas.AuthResponse(
         user=schemas.AuthUser(id=str(user.id), email=user.email, name=user.name),
         token=access_token,
@@ -29,10 +47,22 @@ def signup(payload: schemas.SignupRequest, db: Session = Depends(get_db)) -> sch
 
 
 @router.post("/login", response_model=schemas.AuthResponse)
-def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)) -> schemas.AuthResponse:
-    """로그인 - 액세스 토큰과 리프레시 토큰 발급"""
+@limiter.limit(RATE_LIMITS["auth_login"])
+def login(
+    request: Request,
+    response: Response,
+    payload: schemas.LoginRequest,
+    db: Session = Depends(get_db),
+) -> schemas.AuthResponse:
+    """로그인 - 액세스 토큰과 리프레시 토큰 발급
+    
+    토큰은 httpOnly 쿠키와 JSON 응답 모두로 제공됩니다.
+    """
     user = service.authenticate_user(db, email=payload.email, password=payload.password)
     access_token, refresh_token = service.create_user_tokens(user)
+    
+    # httpOnly 쿠키로 토큰 설정
+    set_auth_cookies(response, access_token, refresh_token)
     
     return schemas.AuthResponse(
         user=schemas.AuthUser(
@@ -48,6 +78,8 @@ def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)) -> schem
 
 @router.post("/refresh", response_model=schemas.RefreshTokenResponse)
 def refresh_token(
+    request: Request,
+    response: Response,
     payload: schemas.RefreshTokenRequest,
     db: Session = Depends(get_db),
 ) -> schemas.RefreshTokenResponse:
@@ -56,10 +88,21 @@ def refresh_token(
         db=db,
         refresh_token=payload.refresh_token,
     )
+    
+    # 새 토큰을 쿠키로도 설정
+    set_auth_cookies(response, access_token, new_refresh_token)
+    
     return schemas.RefreshTokenResponse(
         token=access_token,
         refresh_token=new_refresh_token,
     )
+
+
+@router.post("/logout")
+def logout(response: Response) -> dict:
+    """로그아웃 - 인증 쿠키 삭제"""
+    clear_auth_cookies(response)
+    return {"success": True, "message": "로그아웃되었습니다."}
 
 
 @router.get("/me", response_model=schemas.MeResponse)
@@ -114,7 +157,9 @@ async def resend_verification(
 # ==========================================
 
 @router.post("/forgot-password", response_model=schemas.ForgotPasswordResponse)
+@limiter.limit(RATE_LIMITS["auth_password_reset"])
 async def forgot_password(
+    request: Request,
     payload: schemas.ForgotPasswordRequest,
     db: Session = Depends(get_db),
 ) -> schemas.ForgotPasswordResponse:
@@ -134,7 +179,9 @@ async def forgot_password(
 
 
 @router.post("/reset-password", response_model=schemas.ResetPasswordResponse)
+@limiter.limit(RATE_LIMITS["auth_password_reset"])
 def reset_password_endpoint(
+    request: Request,
     payload: schemas.ResetPasswordRequest,
     db: Session = Depends(get_db),
 ) -> schemas.ResetPasswordResponse:

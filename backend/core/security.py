@@ -78,40 +78,64 @@ def create_refresh_token(
     return encoded_jwt
 
 
-def decode_access_token(token: str) -> dict[str, Any]:
-    """액세스 토큰 디코드 및 검증"""
+def _decode_token_with_rotation(token: str, expected_type: str | None = None) -> dict[str, Any]:
+    """키 회전을 지원하는 토큰 디코드
+    
+    현재 키로 디코드 실패 시 이전 키로 재시도합니다.
+    
+    Args:
+        token: JWT 토큰
+        expected_type: 예상 토큰 타입 ("access" 또는 "refresh")
+    
+    Returns:
+        디코드된 페이로드
+    
+    Raises:
+        UnauthorizedError: 디코드 실패
+    """
     settings = get_settings()
-    try:
-        payload = jwt.decode(
-            token,
-            settings.jwt_secret_key,
-            algorithms=[settings.jwt_algorithm],
-        )
-        # 토큰 타입 검증 (리프레시 토큰은 사용 불가)
-        if payload.get("type") == "refresh":
-            raise UnauthorizedError("리프레시 토큰은 인증에 사용할 수 없습니다.")
-    except JWTError as exc:
-        raise UnauthorizedError("유효하지 않은 토큰입니다.") from exc
+    keys_to_try = [settings.jwt_secret_key]
+    
+    # 이전 키가 설정되어 있으면 폴백으로 사용
+    if settings.jwt_previous_key:
+        keys_to_try.append(settings.jwt_previous_key)
+    
+    last_error = None
+    for key in keys_to_try:
+        try:
+            payload = jwt.decode(
+                token,
+                key,
+                algorithms=[settings.jwt_algorithm],
+            )
+            
+            # 토큰 타입 검증
+            token_type = payload.get("type")
+            if expected_type and token_type != expected_type:
+                if expected_type == "access" and token_type == "refresh":
+                    raise UnauthorizedError("리프레시 토큰은 인증에 사용할 수 없습니다.")
+                elif expected_type == "refresh" and token_type != "refresh":
+                    raise UnauthorizedError("유효하지 않은 리프레시 토큰입니다.")
+            
+            return payload
+            
+        except JWTError as e:
+            last_error = e
+            continue
+    
+    # 모든 키로 실패
+    error_msg = "유효하지 않은 토큰입니다." if expected_type != "refresh" else "유효하지 않은 리프레시 토큰입니다."
+    raise UnauthorizedError(error_msg) from last_error
 
-    return payload
+
+def decode_access_token(token: str) -> dict[str, Any]:
+    """액세스 토큰 디코드 및 검증 (키 회전 지원)"""
+    return _decode_token_with_rotation(token, expected_type="access")
 
 
 def decode_refresh_token(token: str) -> dict[str, Any]:
-    """리프레시 토큰 디코드 및 검증"""
-    settings = get_settings()
-    try:
-        payload = jwt.decode(
-            token,
-            settings.jwt_secret_key,
-            algorithms=[settings.jwt_algorithm],
-        )
-        # 토큰 타입 검증 (액세스 토큰은 사용 불가)
-        if payload.get("type") != "refresh":
-            raise UnauthorizedError("유효하지 않은 리프레시 토큰입니다.")
-    except JWTError as exc:
-        raise UnauthorizedError("유효하지 않은 리프레시 토큰입니다.") from exc
-
-    return payload
+    """리프레시 토큰 디코드 및 검증 (키 회전 지원)"""
+    return _decode_token_with_rotation(token, expected_type="refresh")
 
 
 def get_current_user_payload(

@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from backend.core import models
 from backend.core.exceptions import NotFoundError
@@ -16,6 +16,7 @@ def list_products(
     page: int,
     limit: int,
 ) -> Tuple[List[models.Product], int, int]:
+    """상품 목록 조회 (N+1 쿼리 방지를 위한 eager loading 적용)"""
     query = db.query(models.Product).filter(models.Product.is_active.is_(True))
 
     if category:

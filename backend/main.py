@@ -2,27 +2,44 @@ import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
-from backend.auth.router import router as auth_router
 from backend.core.config import get_settings
 from backend.core.exceptions import DomainError
 from backend.core.logger import configure_logging, get_logger
-from backend.core.database import engine, get_db
-from backend.products.router import router as products_router
-from backend.cart.router import router as cart_router
-from backend.orders.router import router as orders_router
-from backend.kakao.router import router as kakao_router
-from backend.instagram.router import router as instagram_router
-from backend.banners.router import router as banners_router
-from backend.coupons.router import router as coupons_router
-from backend.admin.router import router as admin_router
-from backend.contents.router import router as contents_router
-from backend.uploads.router import router as uploads_router
-from backend.reviews.router import router as reviews_router
+from backend.core.database import engine
+from backend.core.rate_limit import limiter, rate_limit_exceeded_handler
+from backend.api.v1.router import api_router
 
 settings = get_settings()
 configure_logging()
 logger = get_logger(__name__)
+
+# Sentry 초기화 (프로덕션 환경에서만)
+if settings.sentry_dsn and settings.is_production:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+        
+        sentry_sdk.init(
+            dsn=settings.sentry_dsn,
+            integrations=[
+                FastApiIntegration(transaction_style="endpoint"),
+                SqlalchemyIntegration(),
+            ],
+            environment=settings.env,
+            release=settings.app_version,
+            traces_sample_rate=0.1,  # 10% 성능 모니터링
+            profiles_sample_rate=0.1,  # 10% 프로파일링
+            send_default_pii=False,  # 개인정보 전송 안함
+        )
+        logger.info("Sentry 모니터링 활성화됨: %s", settings.env)
+    except ImportError:
+        logger.warning("Sentry SDK not installed, monitoring disabled")
+    except Exception as e:
+        logger.error("Sentry 초기화 실패: %s", str(e))
 
 # 서버 시작 로그 출력
 logger.info("=" * 60)
@@ -46,6 +63,10 @@ app = FastAPI(
     version=settings.app_version,
     debug=settings.debug,
 )
+
+# Rate Limiting 설정
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 # CORS 설정 (다른 미들웨어보다 먼저 추가되어야 함)
 # 개발 환경 포트 + 프로덕션 도메인
@@ -160,17 +181,11 @@ async def handle_general_exception(request: Request, exc: Exception) -> JSONResp
     )
 
 
-app.include_router(auth_router)
-app.include_router(products_router)
-app.include_router(cart_router)
-app.include_router(orders_router)
-app.include_router(kakao_router)
-app.include_router(instagram_router)
-app.include_router(banners_router)
-app.include_router(coupons_router)
-app.include_router(admin_router)
-app.include_router(contents_router)
-app.include_router(uploads_router)
-app.include_router(reviews_router)
+# API v1 라우터 등록 (새로운 방식: /api/v1/...)
+app.include_router(api_router, prefix="/api/v1")
+
+# 하위 호환성을 위한 기존 경로 유지 (기존 방식: /...)
+# 향후 deprecated 예정
+app.include_router(api_router)
 
 

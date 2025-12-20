@@ -5,7 +5,7 @@ from typing import List, Tuple
 from uuid import uuid4
 
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from backend.core import models
 from backend.core.exceptions import NotFoundError, BadRequestError
@@ -23,9 +23,16 @@ def create_order(
     user_id: str,
     payload: schemas.CreateOrderRequest,
 ) -> schemas.CreateOrderResponse:
-    """주문 생성 (재고 확인 및 차감 포함)"""
+    """주문 생성 (재고 확인 및 차감 포함, 벌크 조회 적용)"""
     if not payload.items:
         raise BadRequestError("주문 상품이 존재하지 않습니다.")
+
+    # 벌크 조회: 모든 상품을 한 번에 조회 (N+1 쿼리 방지)
+    product_ids = [item.productId for item in payload.items]
+    products = db.query(models.Product).filter(
+        models.Product.id.in_(product_ids)
+    ).all()
+    products_map = {p.id: p for p in products}
 
     total_amount = 0
     order_items: List[models.OrderItem] = []
@@ -33,7 +40,7 @@ def create_order(
 
     # 1단계: 재고 확인 및 주문 아이템 준비
     for item in payload.items:
-        product = db.query(models.Product).filter(models.Product.id == item.productId).first()
+        product = products_map.get(item.productId)
         if not product:
             raise NotFoundError(f"상품 ID {item.productId}를 찾을 수 없습니다.")
         
@@ -118,17 +125,21 @@ def list_orders(
     limit: int,
     status_filter: str | None,
 ) -> Tuple[List[models.Order], int, int]:
-    query = db.query(models.Order).filter(models.Order.user_id == user_id)
+    """주문 목록 조회 (N+1 쿼리 방지를 위한 eager loading 적용)"""
+    base_query = db.query(models.Order).filter(models.Order.user_id == user_id)
     if status_filter:
-        query = query.filter(models.Order.status == status_filter)
+        base_query = base_query.filter(models.Order.status == status_filter)
 
-    total = query.with_entities(func.count(models.Order.id)).scalar() or 0
+    total = base_query.with_entities(func.count(models.Order.id)).scalar() or 0
     page = max(page, 1)
     limit = max(min(limit, 100), 1)
     offset = (page - 1) * limit
 
+    # N+1 방지: 주문 아이템을 함께 로드
     orders = (
-        query.order_by(models.Order.created_at.desc())
+        base_query
+        .options(selectinload(models.Order.items))
+        .order_by(models.Order.created_at.desc())
         .offset(offset)
         .limit(limit)
         .all()
@@ -138,8 +149,12 @@ def list_orders(
 
 
 def get_order(db: Session, user_id: str, order_id: str) -> models.Order:
+    """주문 상세 조회 (N+1 쿼리 방지를 위한 eager loading 적용)"""
     order = (
         db.query(models.Order)
+        .options(
+            selectinload(models.Order.items).selectinload(models.OrderItem.product)
+        )
         .filter(models.Order.id == order_id, models.Order.user_id == user_id)
         .first()
     )
